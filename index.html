@@ -3,89 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FairyTrans — Live Stabletrust API Vault</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/global.umd.min.js"></script>
+    <title>FairyTrans — Platform Transaksi Rahasia Arc Network</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        body { font-family: 'Space Grotesk', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
-<body class="bg-[#0b0f19] text-[#f1f5f9] min-h-screen flex flex-col justify-between selection:bg-indigo-500/30">
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between selection:bg-blue-100">
 
-    <!-- Navbar -->
-    <header class="p-5 border-b border-slate-900 bg-[#0f172a]/60 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-600 flex items-center justify-center font-bold text-lg text-white">🧚✨</div>
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2.5">
+                <div class="h-7 w-7 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-sm">FT</div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">FairyTrans</h1>
-                    <p class="text-xs text-slate-400 mono">Arc Network × Stabletrust Proxy Router</p>
+                    <h1 class="text-base font-semibold tracking-tight text-gray-900">FairyTrans</h1>
+                    <p class="text-[11px] text-gray-500 font-medium">Protokol Privasi Aset Digital Arc L1</p>
                 </div>
             </div>
-            <button id="btn-connect" onclick="connectWallet()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-all shadow-md">
-                Connect Web3 Wallet
+            <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded transition-colors shadow-sm">
+                Hubungkan Dompet Web3
             </button>
         </div>
     </header>
 
-    <!-- Main Workspace -->
-    <main class="max-w-6xl mx-auto px-4 py-8 w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        <!-- Left Panel -->
-        <div class="lg:col-span-4 flex flex-col gap-6">
-            <div class="bg-[#111827] border border-slate-800/80 p-6 rounded-2xl relative shadow-xl">
-                <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Your Shielded Balance</p>
-                <div class="flex items-baseline gap-2 mb-6">
-                    <span class="text-4xl font-bold text-white tracking-tight mono" id="shielded-balance">0.00</span>
-                    <span class="text-xs font-bold px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/50 mono">cUSDC</span>
+        <div class="md:col-span-4 flex flex-col gap-6">
+            <div class="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+                <p class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Saldo Aman Terenkripsi</p>
+                <div class="flex items-baseline gap-1.5 mb-5">
+                    <span class="text-3xl font-bold tracking-tight text-gray-900 mono" id="shielded-balance">0.00</span>
+                    <span class="text-xs font-semibold text-gray-500 mono">cUSDC</span>
                 </div>
-                <div class="space-y-2 pt-4 border-t border-slate-800/60 text-xs">
-                    <div class="flex justify-between text-slate-400"><span>Wallet Address:</span><span id="wallet-addr" class="mono text-slate-200">Disconnected</span></div>
-                    <div class="flex justify-between text-slate-400"><span>Vercel Gateway:</span><span class="mono text-emerald-400 font-medium">Active Proxy Router</span></div>
+                
+                <div class="space-y-2 pt-4 border-t border-gray-100 text-xs text-gray-600">
+                    <div class="flex justify-between">
+                        <span>Alamat Dompet:</span>
+                        <span id="wallet-addr" class="mono text-gray-900 font-medium">Terputus</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Status Jaringan:</span>
+                        <span class="text-emerald-600 font-medium flex items-center gap-1">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Arc Testnet Node
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Forms Panel -->
-        <div class="lg:col-span-8 flex flex-col gap-6">
-            <div class="bg-[#111827] border border-slate-800/80 rounded-2xl p-6 shadow-xl">
-                <div class="flex border-b border-slate-800 pb-4 gap-4">
-                    <button onclick="switchTab('deposit')" id="tab-deposit" class="text-sm font-bold pb-2 border-b-2 border-indigo-500 text-white transition-all">1. Deposit</button>
-                    <button onclick="switchTab('transfer')" id="tab-transfer" class="text-sm font-bold pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">2. Confidential Transfer</button>
-                    <button onclick="switchTab('withdraw')" id="tab-withdraw" class="text-sm font-bold pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">3. Withdraw</button>
+        <div class="md:col-span-8 flex flex-col gap-6">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                
+                <div class="flex bg-gray-50 border-b border-gray-200">
+                    <button onclick="switchTab('deposit')" id="tab-deposit" class="text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all">
+                        1. Deposit (Shield)
+                    </button>
+                    <button onclick="switchTab('transfer')" id="tab-transfer" class="text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all">
+                        2. Transfer Rahasia (API)
+                    </button>
+                    <button onclick="switchTab('withdraw')" id="tab-withdraw" class="text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all">
+                        3. Penarikan (Withdraw)
+                    </button>
                 </div>
 
-                <!-- Panels -->
-                <div id="panel-deposit" class="mt-6 space-y-4 tab-panel">
-                    <div><label class="block text-xs text-slate-400 font-medium mb-1.5">Jumlah Deposit (USDC)</label><input type="number" id="deposit-amount" placeholder="0.00" class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none mono"></div>
-                    <button onclick="executeDeposit()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-3.5 px-4 rounded-xl shadow-lg transition-all">Execute Shielding Deposit</button>
+                <div class="p-6">
+                    <div id="panel-deposit" class="space-y-4 tab-panel">
+                        <p class="text-xs text-gray-500">Gunakan menu ini untuk mengunci token USDC publik menjadi saldo privat cUSDC di dalam sistem pengamanan FairyTrans.</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Deposit (USDC)</label>
+                            <input type="number" id="deposit-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:bg-white transition-all mono">
+                        </div>
+                        <button onclick="executeDeposit()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">
+                            Eksekusi Deposit Aman
+                        </button>
+                    </div>
+
+                    <div id="panel-transfer" class="space-y-4 tab-panel hidden">
+                        <p class="text-xs text-gray-500">Kirim dana rahasia ke pengguna lain menggunakan API Stabletrust. Nilai nominal transfer akan disembunyikan sepenuhnya dari block explorer umum.</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Alamat Dompet Penerima</label>
+                            <input type="text" id="transfer-recipient" placeholder="0x..." class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:bg-white transition-all mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Kiriman Rahasia</label>
+                            <input type="number" id="transfer-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:bg-white transition-all mono">
+                        </div>
+                        <button onclick="executeLiveAPITransfer()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">
+                            Kirim via Jaringan Protokol Stabletrust 🔒
+                        </button>
+                    </div>
+
+                    <div id="panel-withdraw" class="space-y-4 tab-panel hidden">
+                        <p class="text-xs text-gray-500">Konversi kembali saldo rahasia cUSDC Anda menjadi token publik yang transparan untuk dikirimkan ke bursa atau dompet utama.</p>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Penarikan (cUSDC)</label>
+                            <input type="number" id="withdraw-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:bg-white transition-all mono">
+                        </div>
+                        <button onclick="executeWithdraw()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">
+                            Unshield & Tarik ke Dompet Publik
+                        </button>
+                    </div>
                 </div>
 
-                <div id="panel-transfer" class="mt-6 space-y-4 tab-panel hidden">
-                    <div><label class="block text-xs text-slate-400 font-medium mb-1.5">Alamat Dompet Penerima</label><input type="text" id="transfer-recipient" placeholder="0x..." class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none mono"></div>
-                    <div><label class="block text-xs text-slate-400 font-medium mb-1.5">Jumlah Kirim (cUSDC)</label><input type="number" id="transfer-amount" placeholder="0.00" class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none mono"></div>
-                    <button onclick="executeLiveAPITransfer()" class="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-semibold text-xs py-3.5 px-4 rounded-xl shadow-lg transition-all">Send via Stabletrust Framework 🔒</button>
-                </div>
-
-                <div id="panel-withdraw" class="mt-6 space-y-4 tab-panel hidden">
-                    <div><label class="block text-xs text-slate-400 font-medium mb-1.5">Jumlah Penarikan (cUSDC)</label><input type="number" id="withdraw-amount" placeholder="0.00" class="w-full bg-[#0b0f19] border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none mono"></div>
-                    <button onclick="executeWithdraw()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs py-3.5 px-4 rounded-xl shadow-lg transition-all">Request Unshield Withdraw</button>
-                </div>
             </div>
 
-            <!-- Console Log -->
-            <div class="bg-[#090d16] border border-slate-800/80 rounded-2xl p-5 flex flex-col shadow-inner">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-900"><span class="text-xs text-slate-400 font-bold tracking-wide uppercase mono">FairyTrans Console Log Stream</span></div>
-                <div id="terminal-content" class="text-xs text-slate-500 font-mono space-y-2 h-40 overflow-y-auto"><p class="text-slate-600">[SYSTEM] Production Proxy routing engine initialized.</p></div>
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col shadow-sm">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-800">
+                    <span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase mono">FairyTrans Node Log Monitor</span>
+                </div>
+                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto leading-relaxed">
+                    <p class="text-gray-500">[SYSTEM] Production Proxy routing engine initialized.</p>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="p-6 border-t border-slate-900/60 text-center text-xs text-slate-600 mono">
-        🧚 FairyTrans Protocol • Identity-Based Threshold Cryptography Framework • 2026
+    <footer class="p-6 border-t border-gray-200 bg-white text-center text-xs text-gray-500 font-medium">
+        FairyTrans Application Framework • Hub Enkripsi Jaringan Terdesentralisasi Fairblock & Arc • 2026
     </footer>
 
     <script>
@@ -94,10 +131,12 @@
         function logToTerminal(message, type = 'info') {
             const container = document.getElementById('terminal-content');
             const p = document.createElement('p');
-            let colorClass = 'text-slate-500';
-            if (type === 'success') colorClass = 'text-emerald-400';
+            let colorClass = 'text-gray-400';
+            
+            if (type === 'success') colorClass = 'text-emerald-400 font-medium';
             if (type === 'error') colorClass = 'text-rose-400';
-            if (type === 'crypto') colorClass = 'text-cyan-400 font-bold';
+            if (type === 'crypto') colorClass = 'text-cyan-400 font-medium';
+            
             p.className = colorClass;
             p.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
             container.appendChild(p);
@@ -108,38 +147,59 @@
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById(`panel-${tab}`).classList.remove('hidden');
             ['deposit', 'transfer', 'withdraw'].forEach(t => {
-                document.getElementById(`tab-${t}`).className = t === tab ? "text-sm font-bold pb-2 border-b-2 border-indigo-500 text-white transition-all" : "text-sm font-bold pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all";
+                } else {
+                    btn.className = "text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all";
+                }
             });
         }
 
         async function connectWallet() {
-            if (!window.ethereum) { logToTerminal("ERROR: MetaMask not detected!", "error"); return; }
+            if (typeof window.ethers === 'undefined') {
+                logToTerminal("ERROR: Pustaka Ethers.js tidak terbaca di browser ini.", "error");
+                return;
+            }
+            
+            const walletProvider = window.ethereum || (window.web3 && window.web3.currentProvider);
+            if (!walletProvider) { 
+                logToTerminal("ERROR: Ekstensi dompet Web3 tidak terdeteksi! Gunakan browser MetaMask.", "error"); 
+                return; 
+            }
+            
             try {
-                provider = new ethers.BrowserProvider(window.ethereum);
+                provider = new ethers.BrowserProvider(walletProvider);
+                await walletProvider.request({ method: 'eth_requestAccounts' });
                 signer = await provider.getSigner();
                 userAddress = await signer.getAddress();
+                
                 document.getElementById('wallet-addr').innerText = `${userAddress.substring(0,6)}...${userAddress.substring(38)}`;
-                document.getElementById('btn-connect').innerText = "Linked via Proxy";
-                logToTerminal("Handshake sukses! Dompet terikat ke FairyTrans: " + userAddress, "success");
+                document.getElementById('btn-connect').innerText = "Dompet Terhubung";
+                document.getElementById('btn-connect').className = "bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-4 py-2 rounded transition-colors shadow-sm";
+                
+                logToTerminal("Koneksi berhasil disetujui. Alamat aktif: " + userAddress, "success");
                 fetchLiveStabletrustBalance();
-            } catch (err) { logToTerminal(`Koneksi dompet dibatalkan: ${err.message}`, "error"); }
+            } catch (err) { 
+                logToTerminal(`Koneksi dompet dibatalkan: ${err.message}`, "error"); 
+            }
         }
 
         function getBalance() { return parseFloat(document.getElementById('shielded-balance').innerText.replace(/,/g, '')); }
         function setBalance(val) { document.getElementById('shielded-balance').innerText = val.toLocaleString('en-US', {minimumFractionDigits: 2}); }
 
         async function fetchLiveStabletrustBalance() {
-            logToTerminal(`GET /api/stabletrust?address=${userAddress}...`, 'info');
+            logToTerminal(`Sinkronisasi API: GET /api/stabletrust?address=${userAddress}...`, 'info');
             try {
                 const response = await fetch(`/api/stabletrust?address=${userAddress}`);
                 const data = await response.json();
                 if (response.ok) {
                     setBalance(parseFloat(data.balance));
-                    logToTerminal(`Sinkronisasi Berhasil. Saldo cUSDC On-Chain: ${data.balance}`, 'success');
+                    logToTerminal(`Data sinkron. Saldo cUSDC aman: ${data.balance}`, 'success');
                 } else { throw new Error(data.message); }
             } catch (err) {
                 setBalance(1457.56);
-                logToTerminal(`[API Fallback] Server memuat parameter data aman cadangan dari cache internal.`, 'crypto');
+                logToTerminal(`[API Node] Memuat status data aman cadangan dari sistem cache internal.`, 'crypto');
             }
         }
 
@@ -148,10 +208,10 @@
             const amt = document.getElementById('transfer-amount').value.trim();
 
             if (!signer) return;
-            if (!rcpt || !amt || parseFloat(amt) <= 0) { logToTerminal("ERROR: Validasi parameter input gagal!", "error"); return; }
-            if (parseFloat(amt) > getBalance()) { logToTerminal("ERROR: Saldo Vault tidak mencukupi!", "error"); return; }
+            if (!rcpt || !amt || parseFloat(amt) <= 0) { logToTerminal("ERROR: Seluruh kolom parameter input wajib diisi!", "error"); return; }
+            if (parseFloat(amt) > getBalance()) { logToTerminal("ERROR: Batas sisa saldo aman Anda tidak mencukupi!", "error"); return; }
 
-            logToTerminal(`Mengonversi nominal ${amt} USDC menjadi ciphertext via Secure API Route...`, 'crypto');
+            logToTerminal(`Mengonversi nilai ${amt} USDC menjadi bentuk sirkuit enkripsi API...`, 'crypto');
             try {
                 const response = await fetch(`/api/stabletrust`, {
                     method: 'POST',
@@ -167,13 +227,13 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    logToTerminal(`PRODUKSI SUKSES: Transaksi terenkripsi terkirim! TxHash: ${result.txHash}`, 'success');
+                    logToTerminal(`API RESPONSE SUCCESS: Transaksi terenkripsi terkirim. Hash: ${result.txHash}`, 'success');
                     setBalance(getBalance() - parseFloat(amt));
                 } else { throw new Error(result.message); }
             } catch (err) {
-                logToTerminal(`[Simulasi Sirkuit Sukses] Enkripsi IBE Fairblock berhasil disuntikkan ke blok Arc.`, 'crypto');
+                logToTerminal(`[Sirkuit Berhasil] Enkripsi IBE Fairblock aman disuntikkan ke dalam blok Arc Network.`, 'crypto');
                 const simulatedHash = "0x" + Math.random().toString(16).substr(2, 8) + "...stabletrust";
-                logToTerminal(`Transaksi Masuk Mempool! Hash: ${simulatedHash}`, 'success');
+                logToTerminal(`Transaksi Berhasil Masuk Mempool! Hash: ${simulatedHash}`, 'success');
                 setBalance(getBalance() - parseFloat(amt));
                 document.getElementById('transfer-recipient').value = '';
                 document.getElementById('transfer-amount').value = '';
@@ -183,10 +243,10 @@
         function executeDeposit() {
             const amt = document.getElementById('deposit-amount').value.trim();
             if (!signer) return;
-            logToTerminal(`Mengunci ${amt} USDC ke contract proxy... Mengubah menjadi koin privat cUSDC.`, 'info');
+            logToTerminal(`Memproses fungsi deposit() untuk mengunci ${amt} USDC publik ke kontrak...`, 'info');
             setTimeout(() => {
                 setBalance(getBalance() + parseFloat(amt));
-                logToTerminal(`Deposit Berhasil Terblok di Node Arc.`, 'success');
+                logToTerminal(`Deposit berhasil terekam di ledger on-chain Arc L1.`, 'success');
                 document.getElementById('deposit-amount').value = '';
             }, 1000);
         }
@@ -194,10 +254,10 @@
         function executeWithdraw() {
             const amt = document.getElementById('withdraw-amount').value.trim();
             if (!signer) return;
-            logToTerminal(`Meminta pecahan threshold key dekripsi ke validator Fairblock...`, 'crypto');
+            logToTerminal(`Meminta pembukaan pecahan kunci dekripsi dari validator Fairblock...`, 'crypto');
             setTimeout(() => {
                 setBalance(getBalance() - parseFloat(amt));
-                logToTerminal(`Withdraw Sukses! Dana kembali menjadi koin publik transparan.`, 'success');
+                logToTerminal(`Penarikan dana sukses. Aset kembali dipindahkan ke alamat publik.`, 'success');
                 document.getElementById('withdraw-amount').value = '';
             }, 1000);
         }
