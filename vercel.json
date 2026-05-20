@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/stabletrust", "destination": "/api/stabletrust.js" }
+  ]
+}
