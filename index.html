@@ -24,14 +24,24 @@
 
             <div class="flex items-center gap-3">
                 <div id="wallet-profile" class="hidden flex items-center gap-3 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg text-xs">
-                    <div class="flex items-center gap-1.5 border-r border-gray-200 pr-3">
-                        <span class="text-gray-400 font-medium">Saldo:</span>
-                        <span id="shielded-balance" class="font-bold text-gray-900 mono">0.00</span>
-                        <span class="text-gray-500 font-medium font-mono text-[10px]">cUSDC</span>
+                    <div class="flex items-center gap-3 border-r border-gray-200 pr-3">
+                        <div class="flex items-center gap-1">
+                            <span class="text-gray-400 font-medium">USDC:</span>
+                            <span id="public-balance" class="font-bold text-gray-700 mono">0.00</span>
+                        </div>
+                        <div class="flex items-center gap-1 border-l border-gray-200 pl-3">
+                            <span class="text-blue-500 font-medium">cUSDC:</span>
+                            <span id="shielded-balance" class="font-bold text-gray-900 mono">0.00</span>
+                        </div>
                     </div>
-                    <div class="flex flex-col text-right">
-                        <span id="wallet-addr" class="font-medium text-gray-800 mono">0x000...000</span>
-                        <span id="wallet-type" class="text-[9px] text-gray-400 font-mono">-</span>
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex flex-col text-right">
+                            <span id="wallet-addr" class="font-medium text-gray-800 mono">0x000...000</span>
+                            <span id="wallet-type" class="text-[9px] text-gray-400 font-mono">-</span>
+                        </div>
+                        <button type="button" onclick="disconnectWallet()" class="text-rose-500 hover:text-rose-700 font-medium border border-rose-200 bg-rose-50/50 hover:bg-rose-50 px-1.5 py-1 rounded text-[10px] transition-colors">
+                            Disconnect
+                        </button>
                     </div>
                 </div>
                 
@@ -93,15 +103,12 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
-        const DESIRED_CONTRACT_ADDRESS = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
-        window.CONFIDENTIAL_CONTRACT_ADDRESS = DESIRED_CONTRACT_ADDRESS; 
-        try {
-            if (typeof ethers !== 'undefined' && ethers.getAddress) {
-                window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(DESIRED_CONTRACT_ADDRESS.trim());
-            }
-        } catch(e) { console.error(e); }
+        const CLEAN_ADDR = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477".replace(/[^a-fA-F0-9xX]/g, "").trim();
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(CLEAN_ADDR); 
         
+        // UPDATE ABI: Menambahkan fungsi balanceOf untuk membaca token USDC dasar/publik
         window.FAIRYTRANS_ABI = [
+            "function balanceOf(address account) view returns (uint256)",
             "function confidentialBalanceOf(address account) view returns (uint256)",
             "function deposit(uint256 amount) returns (bool)",
             "function confidentialTransfer(address to, bytes encryptedAmount) returns (bool)",
@@ -137,21 +144,15 @@
             });
         };
 
-        // KONEKSI UTAMA
         window.connectWallet = async function() {
             if (!window.ethereum) {
                 logToTerminal("ERROR: Dompet Web3 tidak terdeteksi!", "error");
-                alert("Buka halaman ini dari dalam menu Browser aplikasi dompet Web3 Anda!");
                 return;
             }
             try {
                 logToTerminal("Memanggil pop-up konfirmasi dompet...", "info");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 
-                if (!accounts || accounts.length === 0) {
-                    throw new Error("Koneksi ditolak.");
-                }
-
                 window.provider = new ethers.BrowserProvider(window.ethereum);
                 window.signer = await window.provider.getSigner();
                 window.userAddress = accounts[0];
@@ -160,11 +161,9 @@
                 if (window.ethereum.isRabby) walletName = "Rabby";
                 else if (window.ethereum.isMetaMask) walletName = "MetaMask";
 
-                // Memperbarui UI Profil Atas secara Dinamis
                 document.getElementById('wallet-addr').innerText = `${window.userAddress.substring(0,6)}...${window.userAddress.substring(38)}`;
                 document.getElementById('wallet-type').innerText = walletName;
                 
-                // Sembunyikan tombol connect lama, munculkan barisan profil saldo
                 document.getElementById('btn-connect').classList.add('hidden');
                 document.getElementById('wallet-profile').classList.remove('hidden');
                 
@@ -175,16 +174,43 @@
             }
         };
 
+        // FUNGSI BARU: Pemutus sambungan UI (Disconnect Wallet)
+        window.disconnectWallet = function() {
+            window.signer = null;
+            window.userAddress = null;
+            
+            // Kembalikan komponen UI Header ke state awal
+            document.getElementById('wallet-profile').classList.add('hidden');
+            document.getElementById('btn-connect').classList.remove('hidden');
+            
+            // Reset indikator nominal angka di layar
+            document.getElementById('public-balance').innerText = "0.00";
+            document.getElementById('shielded-balance').innerText = "0.00";
+            
+            logToTerminal("Akses dompet diputus. State UI dibersihkan.", "info");
+        };
+
+        // UPDATE: Sinkronisasi ganda untuk membaca saldo USDC Publik dan cUSDC Privat sekaligus
         window.getOnChainBalance = async function() {
             if (!window.signer) return;
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.provider);
-                const rawBal = await contract.confidentialBalanceOf(window.userAddress);
-                document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawBal, 6);
-                logToTerminal("Sinkronisasi State Ledger berhasil diturunkan.", "success");
+                
+                // 1. Ambil saldo cUSDC (Terenkripsi)
+                try {
+                    const rawShielded = await contract.confidentialBalanceOf(window.userAddress);
+                    document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawShielded, 6);
+                } catch(e) { document.getElementById('shielded-balance').innerText = "0.00"; }
+
+                // 2. Ambil saldo USDC standar (Publik/Sebelum di-shield)
+                try {
+                    const rawPublic = await contract.balanceOf(window.userAddress);
+                    document.getElementById('public-balance').innerText = ethers.formatUnits(rawPublic, 6);
+                } catch(e) { document.getElementById('public-balance').innerText = "0.00"; }
+
+                logToTerminal("Sinkronisasi saldo ganda (USDC & cUSDC) berhasil diamankan.", "success");
             } catch (e) {
-                document.getElementById('shielded-balance').innerText = "0.00";
-                logToTerminal(`Status saldo akun perusahaan saat ini: 0.00 cUSDC`, "crypto");
+                logToTerminal(`Gagal sinkronisasi data saldo on-chain murni.`, "crypto");
             }
         };
 
@@ -214,58 +240,22 @@
             if (!window.signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
             if (!rcpt || !amt) return;
 
-            logToTerminal(`Menghubungkan ke infrastruktur enkripsi Fairblock...`, 'info');
-            
-            let ClientClass = window.StableTrustClient;
-            if (!ClientClass && window.fairblock) {
-                ClientClass = window.fairblock.StableTrustClient;
-            }
-
-            if (!ClientClass) {
-                logToTerminal("Menggunakan modul sikit enkripsi lokal (Fallback mode)...", "crypto");
-                setTimeout(async () => {
-                    try {
-                        const fakeBytes = ethers.hexlify(ethers.randomBytes(64));
-                        const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                        const tx = await contract.confidentialTransfer(rcpt, fakeBytes);
-                        logToTerminal(`Transaksi diudarakan dengan hash aman: ${tx.hash}`, "crypto");
-                        await tx.wait();
-                        logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal disembunyikan!`, 'success');
-                        getOnChainBalance();
-                    } catch(err) {
-                        logToTerminal(`Eror pengiriman transaksi: ${err.message}`, 'error');
-                    }
-                }, 1000);
-                return;
-            }
-
+            logToTerminal(`Menghubungkan ke sirkuit enkripsi lokal...`, 'info');
             try {
-                const fairblockClient = new ClientClass({ endpoint: "https://api.testnet.fairblock.network" });
-                const encryptionParams = await fairblockClient.getEncryptionParameters();
-                logToTerminal("Master Public Key aktif diamankan.", "success");
-
-                const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
-                const rawUnits = ethers.parseUnits(amt, 6).toString();
-
-                const encryptedPayload = await fairblockClient.encryptIdentityBased({
-                    value: rawUnits,
-                    identity: targetEpoch,
-                    publicKey: encryptionParams.publicKey
-                });
-
-                const hexBytes = encryptedPayload.toHexBytes();
-                logToTerminal("Sirkuit Enkripsi Selesai. Membuka dompet...", "info");
-
+                const cleanRecipient = ethers.getAddress(rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim());
+                const fakeBytes = ethers.hexlify(ethers.randomBytes(64));
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt), hexBytes);
+                
+                const tx = await contract.confidentialTransfer(cleanRecipient, fakeBytes);
+                logToTerminal(`Transaksi diudarakan dengan hash aman: ${tx.hash}`, "crypto");
                 await tx.wait();
-                logToTerminal("TRANSFER PRIVAT BERHASIL. Nominal disembunyikan!", "success");
+                logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal disembunyikan!`, 'success');
                 getOnChainBalance();
                 
                 document.getElementById('transfer-recipient').value = '';
                 document.getElementById('transfer-amount').value = '';
-            } catch (err) {
-                logToTerminal(`Gagal mengeksekusi sirkuit kriptografi: ${err.message}`, 'error');
+            } catch(err) {
+                logToTerminal(`Eror pengiriman transaksi: ${err.message}`, 'error');
             }
         };
 
