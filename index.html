@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FairyTrans — Platform Transaksi Rahasia Arc Network</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fairblock/stabletrust-sdk@0.1.1/dist/index.global.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
     </style>
@@ -90,22 +91,15 @@
 
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col shadow-sm">
                 <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-800"><span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase mono">Live Arc Testnet & Fairblock Audit Monitor</span></div>
-                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto text-gray-400"><p>[RPC] Node terinisialisasi. Menunggu otentikasi ekstensi dompet...</p></div>
+                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto text-gray-400"><p>[RPC] Node terinisialisasi. Menunggu otentikasi dompet...</p></div>
             </div>
         </div>
     </main>
 
     <footer class="p-6 border-t border-gray-200 bg-white text-center text-xs text-gray-500 font-medium">FairyTrans Production Framework • Terhubung ke Jaringan Blockchain Arc L1 • 2026</footer>
 
-    <script type="module">
-        // Impor langsung modul kompilasi Stabletrust SDK resmi via CDN ESM Run
-        import { StableTrustClient } from 'https://esm.run/@fairblock/stabletrust-sdk';
-
-        window.fairblockClient = new StableTrustClient({
-            endpoint: "https://api.testnet.fairblock.network"
-        });
-
-        // INTEGRASI ALAMAT KONTRAK UTAMA (Format Checksum Otomatis)
+    <script>
+        // Set variabel global inti blockchain
         const DESIRED_CONTRACT_ADDRESS = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
         window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(DESIRED_CONTRACT_ADDRESS.trim()); 
         
@@ -141,36 +135,31 @@
             });
         }
 
-        // LOGIKA KONEKSI UNIVERSAL (DIJAMIN TANPA CRASH DI SELURUH MOBILE/DESKTOP PROVIDER)
+        // 1. FUNGSI UTAMA KONEKSI DOMPET (DITARUH DI ATAS, MANDIRI & ANTI-MACET)
         window.connectWallet = async function() {
             if (!window.ethereum) {
-                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi! Silakan gunakan dApp Browser.", "error");
+                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi! Gunakan dApp Browser di dalam dompet Anda.", "error");
                 return;
             }
             try {
-                logToTerminal("Meminta izin otentikasi alamat dompet...", "info");
+                logToTerminal("Memanggil pop-up konfirmasi dompet Web3...", "info");
                 
-                // Ambil provider dasar secara langsung (kompatibel penuh dengan EIP-1193)
-                const baseProvider = window.ethereum;
-                
-                // Memicu jendela pop-up dompet secara mutlak
-                const accounts = await baseProvider.request({ method: 'eth_requestAccounts' });
+                // Eksekusi pemanggilan murni langsung ke wallet provider yang menyuntik halaman
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 
                 if (!accounts || accounts.length === 0) {
-                    throw new Error("Tidak ada alamat dompet yang dikembalikan.");
+                    throw new Error("Pengguna menolak koneksi dompet.");
                 }
 
-                window.provider = new ethers.BrowserProvider(baseProvider);
+                window.provider = new ethers.BrowserProvider(window.ethereum);
                 window.signer = await window.provider.getSigner();
                 window.userAddress = accounts[0];
 
-                // Identifikasi tipe dompet secara aman tanpa memicu crash
-                let walletName = "Web3 Wallet Connected";
-                if (baseProvider.isRabby) walletName = "Rabby Wallet";
-                else if (baseProvider.isMetaMask) walletName = "MetaMask";
-                else if (baseProvider.isTrust) walletName = "Trust Wallet";
+                let walletName = "Connected Wallet";
+                if (window.ethereum.isRabby) walletName = "Rabby Wallet";
+                else if (window.ethereum.isMetaMask) walletName = "MetaMask";
 
-                // Memperbarui UI Tampilan
+                // Update UI secara instan demi kelancaran demo video
                 document.getElementById('wallet-addr').innerText = `${window.userAddress.substring(0,6)}...${window.userAddress.substring(38)}`;
                 document.getElementById('wallet-type').innerText = walletName;
                 document.getElementById('btn-connect').innerText = "Dompet Terhubung";
@@ -179,8 +168,21 @@
                 logToTerminal(`Dompet sukses terikat: ${window.userAddress}`, "success");
                 getOnChainBalance();
             } catch (err) {
-                logToTerminal(`Koneksi ditolak atau gagal: ${err.message}`, "error");
+                logToTerminal(`Gagal menghubungkan dompet: ${err.message}`, "error");
             }
+        }
+
+        // Inisialisasi Klien Fairblock dengan sistem proteksi crash
+        window.fairblockClient = null;
+        try {
+            const ClientClass = window.StableTrustClient || (window.fairblock && window.fairblock.StableTrustClient);
+            if (ClientClass) {
+                window.fairblockClient = new ClientClass({
+                    endpoint: "https://api.testnet.fairblock.network"
+                });
+            }
+        } catch (e) {
+            console.error("Gagal memuat arsitektur SDK Fairblock di latar belakang:", e);
         }
 
         window.getOnChainBalance = async function() {
@@ -198,21 +200,21 @@
 
         window.executeDepositOnChain = async function() {
             const amt = document.getElementById('deposit-amount').value.trim();
-            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda dahulu!", "error"); return; }
             if (!amt) return;
 
-            logToTerminal(`Memicu pop-up dompet... Meminta konfirmasi deposit(${amt} USDC)...`, 'info');
+            logToTerminal(`Meminta konfirmasi deposit (${amt} USDC)...`, 'info');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
                 const tx = await contract.deposit(ethers.parseUnits(amt, 6));
-                logToTerminal(`Transaksi disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
+                logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 
                 await tx.wait();
-                logToTerminal(`Blok Sukses Dikonfirmasi! Dana korporat masuk ke sirkuit aman cUSDC.`, 'success');
+                logToTerminal(`Deposit Sukses! Dana masuk ke sirkuit aman cUSDC.`, 'success');
                 getOnChainBalance();
                 document.getElementById('deposit-amount').value = '';
             } catch (err) {
-                logToTerminal(`Eksekusi deposit dibatalkan atau gas tidak cukup: ${err.message}`, 'error');
+                logToTerminal(`Deposit gagal: ${err.message}`, 'error');
             }
         }
 
@@ -222,12 +224,16 @@
 
             if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
             if (!rcpt || !amt) return;
+            
+            if (!window.fairblockClient) {
+                logToTerminal("ERROR: Node Kriptografi Fairblock tidak merespon di browser mobile ini.", "error");
+                return;
+            }
 
-            logToTerminal(`Menghubungi infrastruktur node Fairblock untuk menarik Parameter Kunci...`, 'info');
+            logToTerminal(`Menarik Parameter Kunci dari Node Fairblock...`, 'info');
             try {
                 const encryptionParams = await window.fairblockClient.getEncryptionParameters();
-                logToTerminal(`Master Public Key Kriptografi aktif berhasil diamankan.`, 'success');
-                logToTerminal(`Mengonversi nilai ${amt} menjadi ciphertext biner via sirkuit IBE lokal...`, 'crypto');
+                logToTerminal(`Master Public Key aktif diamankan.`, 'success');
 
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
@@ -239,21 +245,19 @@
                 });
 
                 const hexBytes = encryptedPayload.toHexBytes();
-                logToTerminal(`Sirkuit Enkripsi Selesai. Struktur payload terbuat.`, 'crypto');
-                logToTerminal(`Membuka jendela konfirmasi dompet untuk menyiarkan ciphertext...`, 'info');
+                logToTerminal(`Sirkuit Enkripsi Selesai. Membuka konfirmasi dompet...`, 'info');
 
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
                 const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt.trim()), hexBytes);
-                logToTerminal(`Mengudara di Mempool L1! Memantau validasi transaksi hash: ${tx.hash}`, 'crypto');
                 
                 await tx.wait();
-                logToTerminal(`TRANSFER PRIVAT PERUSAHAAN BERHASIL. Nominal dikaburkan dari Block Explorer!`, 'success');
+                logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal disembunyikan!`, 'success');
                 getOnChainBalance();
                 
                 document.getElementById('transfer-recipient').value = '';
                 document.getElementById('transfer-amount').value = '';
             } catch (err) {
-                logToTerminal(`Gagal mengeksekusi sirkuit enkripsi Stabletrust: ${err.message}`, 'error');
+                logToTerminal(`Gagal mengeksekusi enkripsi Stabletrust: ${err.message}`, 'error');
             }
         }
 
@@ -262,20 +266,17 @@
             if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
             if (!amt) return;
 
-            logToTerminal(`Meminta pelepasan potongan kunci dekripsi (decryption shares) ke komite node...`, 'crypto');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                logToTerminal(`Membuka jendela dompet untuk persetujuan pembakaran cUSDC...`, 'info');
+                logToTerminal(`Membuka jendela konfirmasi penarikan...`, 'info');
                 
                 const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
-                logToTerminal(`Menunggu sinkronisasi blok penarikan dana... TxHash: ${tx.hash}`, 'crypto');
-                
                 await tx.wait();
-                logToTerminal(`Penarikan dana korporat sukses. Saldo kembali dalam wujud USDC publik terbuka.`, 'success');
+                logToTerminal(`Penarikan sukses. Saldo kembali ke wujud USDC transparan.`, 'success');
                 getOnChainBalance();
                 document.getElementById('withdraw-amount').value = '';
             } catch (err) {
-                logToTerminal(`Proses unshielding on-chain gagal: ${err.message}`, 'error');
+                logToTerminal(`Proses unshielding gagal: ${err.message}`, 'error');
             }
         }
     </script>
