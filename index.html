@@ -114,15 +114,15 @@
             "function withdraw(uint256 amount) returns (bool)"
         ];
 
+        // UPDATE PARAMETER: Menggunakan Chain ID resmi Arc Testnet (5042002 desimal)
         const ARC_TESTNET_PARAMS = {
-            chainId: "0x20A",
+            chainId: "0x4CEC32", 
             chainName: "Arc Testnet",
-            nativeCurrency: { name: "Arc Token", symbol: "ARC", decimals: 18 },
+            nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
             rpcUrls: ["https://rpc.testnet.arc.network"],
-            blockExplorerUrls: ["https://explorer.testnet.arc.network"]
+            blockExplorerUrls: ["https://testnet.arcscan.app"]
         };
 
-        // State Global Aplikasi yang bisa diakses silang script
         window.web3Provider = null;
         window.web3Signer = null;
         window.web3UserAddress = null;
@@ -156,7 +156,6 @@
             });
         };
 
-        // Fungsi koneksi dompet ditaruh di skrip biasa agar tidak tersandera loading module internet
         window.connectWallet = async function() {
             if (!window.ethereum) {
                 logToTerminal("ERROR: Dompet Web3 tidak terdeteksi!", "error");
@@ -167,7 +166,7 @@
                 logToTerminal("Memanggil pop-up konfirmasi dompet Web3...", "info");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 
-                logToTerminal("Memeriksa konfigurasi jaringan Arc Testnet...", "info");
+                logToTerminal("Memeriksa konfigurasi jaringan Arc Testnet resmi...", "info");
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
@@ -219,6 +218,7 @@
         window.getOnChainBalance = async function() {
             if (!window.web3Signer) return;
             try {
+                // Tarik data langsung menggunakan provider Arc RPC resmi
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
                 try {
                     const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
@@ -271,12 +271,11 @@
             }
         };
 
-        // Fungsi jembatan untuk memanggil eksekusi modul di bawah
         window.triggerConfidentialTransfer = function() {
             if (typeof window.executeConfidentialTransferOnChain === 'function') {
                 window.executeConfidentialTransferOnChain();
             } else {
-                logToTerminal("ERROR: Modul Kriptografi Fairblock sedang memuat, silakan coba sesaat lagi.", "error");
+                logToTerminal("ERROR: Modul Kriptografi Fairblock sedang memuat, silakan coba lagi.", "error");
             }
         };
     </script>
@@ -288,7 +287,6 @@
             endpoint: "https://api.testnet.fairblock.network"
         });
 
-        // Menyuntikkan fungsi transfer ke jendela global secara aman setelah module selesai memuat sempurna
         window.executeConfidentialTransferOnChain = async function() {
             const rcpt = document.getElementById('transfer-recipient').value.trim();
             const amt = document.getElementById('transfer-amount').value.trim();
@@ -304,7 +302,7 @@
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
 
-                window.logToTerminal(`Mengonversi nilai ke sirkuit Identity-Based Encryption (IBE)...`, 'crypto');
+                window.logToTerminal(`Mengonversi nilai ke sikit Identity-Based Encryption (IBE)...`, 'crypto');
                 
                 const encryptedPayload = await fairblockClient.encryptIdentityBased({
                     value: rawUnits,
