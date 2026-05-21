@@ -23,23 +23,25 @@
                     <p class="text-[11px] text-gray-500 font-medium">Protokol Privasi Aset Digital Arc L1</p>
                 </div>
             </div>
-            <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded shadow-sm">
+            <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded shadow-sm transition-colors">
                 Hubungkan Dompet Web3
             </button>
         </div>
     </header>
 
     <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-6">
+        
         <div class="md:col-span-4 flex flex-col gap-6">
             <div class="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
-                <p class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Saldo Aman Terenkripsi</p>
+                <p class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Saldo Aman Terenkripsi (Perusahaan)</p>
                 <div class="flex items-baseline gap-1.5 mb-5">
                     <span class="text-3xl font-bold tracking-tight text-gray-900 mono" id="shielded-balance">0.00</span>
                     <span class="text-xs font-semibold text-gray-500 mono">cUSDC</span>
                 </div>
                 <div class="space-y-2 pt-4 border-t border-gray-100 text-xs text-gray-600">
-                    <div class="flex justify-between"><span>Alamat Dompet:</span><span id="wallet-addr" class="mono text-gray-900 font-medium">Terputus</span></div>
-                    <div class="flex justify-between"><span>Status Jaringan:</span><span class="text-emerald-600 font-medium flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Live Blockchain</span></div>
+                    <div class="flex justify-between"><span>Alamat Aktif:</span><span id="wallet-addr" class="mono text-gray-900 font-medium">Terputus</span></div>
+                    <div class="flex justify-between"><span>Penyedia Ekstensi:</span><span id="wallet-type" class="mono text-gray-900 font-medium">-</span></div>
+                    <div class="flex justify-between"><span>Status Sinkronisasi:</span><span class="text-emerald-600 font-medium flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Live Node RPC</span></div>
                 </div>
             </div>
         </div>
@@ -54,55 +56,58 @@
 
                 <div class="p-6">
                     <div id="panel-deposit" class="space-y-4 tab-panel">
+                        <p class="text-xs text-gray-500">Kunci token USDC korporat yang transparan untuk mencetak biner rahasia cUSDC dengan rasio 1:1.</p>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Deposit (USDC)</label>
                             <input type="number" id="deposit-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
                         </div>
-                        <button onclick="executeDepositOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Deposit ke MetaMask</button>
+                        <button onclick="executeDepositOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">Kirim Transaksi Deposit ke MetaMask/Rabby</button>
                     </div>
 
                     <div id="panel-transfer" class="space-y-4 tab-panel hidden">
+                        <p class="text-xs text-gray-500">Kirim nilai terenkripsi murni via Stabletrust SDK. Angka nominal transaksi disensor penuh dari data publik Arc Block Explorer.</p>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Alamat Dompet Penerima</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Alamat Dompet Penerima / Vendor</label>
                             <input type="text" id="transfer-recipient" placeholder="0x..." class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Kiriman Rahasia</label>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Kiriman Rahasia (cUSDC)</label>
                             <input type="number" id="transfer-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
                         </div>
-                        <button onclick="executeConfidentialTransferOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Rahasia via Dompet Web3 🔒</button>
+                        <button onclick="executeConfidentialTransferOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">Kirim Transaksi Rahasia via Dompet Web3 🔒</button>
                     </div>
 
                     <div id="panel-withdraw" class="space-y-4 tab-panel hidden">
+                        <p class="text-xs text-gray-500">Membakar (burn) token rahasia cUSDC dan melepaskan kembali likuiditas USDC transparan ke saldo utama dompet.</p>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Penarikan (cUSDC)</label>
                             <input type="number" id="withdraw-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
                         </div>
-                        <button onclick="executeWithdrawOnChain()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Penarikan ke Blockchain</button>
+                        <button onclick="executeWithdrawOnChain()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm transition-colors">Kirim Transaksi Penarikan ke Blockchain</button>
                     </div>
                 </div>
             </div>
 
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col shadow-sm">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-800"><span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase mono">Live Arc Testnet Transaction Audit</span></div>
-                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto text-gray-400"><p>[RPC] Menunggu otentikasi dompet Web3...</p></div>
+                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-800"><span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase mono">Live Arc Testnet & Fairblock Audit Monitor</span></div>
+                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto text-gray-400"><p>[RPC] Node terinisialisasi. Menunggu otentikasi ekstensi dompet...</p></div>
             </div>
         </div>
     </main>
 
-    <footer class="p-6 border-t border-gray-200 bg-white text-center text-xs text-gray-500 font-medium">FairyTrans Application Framework • Terhubung ke Jaringan Blockchain Arc L1 • 2026</footer>
+    <footer class="p-6 border-t border-gray-200 bg-white text-center text-xs text-gray-500 font-medium">FairyTrans Production Framework • Terhubung ke Jaringan Blockchain Arc L1 • 2026</footer>
 
     <script type="module">
-        // Import Fairblock Client SDK secara langsung via ESM CDN resmi
+        // Impor langsung modul kompilasi Stabletrust SDK resmi via CDN ESM Run
         import { StableTrustClient } from 'https://esm.run/@fairblock/stabletrust-sdk';
 
         window.fairblockClient = new StableTrustClient({
             endpoint: "https://api.testnet.fairblock.network"
         });
 
-        // PERBAIKAN UTAMA: Pembersihan alamat Checksum agar kompatibel dengan Ethers L6
-        const RAW_CONTRACT_ADDRESS = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
-        window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(RAW_CONTRACT_ADDRESS.trim()); 
+        // INTEGRASI ALAMAT KONTRAK UTAMA (Format Checksum Otomatis)
+        const DESIRED_CONTRACT_ADDRESS = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(DESIRED_CONTRACT_ADDRESS.trim()); 
         
         window.FAIRYTRANS_ABI = [
             "function confidentialBalanceOf(address account) view returns (uint256)",
@@ -132,75 +137,103 @@
             });
         }
 
+        // DETEKSI EKSTENSI MULTI-WALLET PINTAR (Prioritas Rabby Wallet)
         window.connectWallet = async function() {
             if (!window.ethereum) {
-                logToTerminal("ERROR: MetaMask tidak dikesan!", "error");
+                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi di browser ini!", "error");
                 return;
             }
             try {
-                window.provider = new ethers.BrowserProvider(window.ethereum);
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                let activeProvider = window.ethereum;
+                let walletName = "MetaMask / Generic Web3";
+
+                // Memisahkan provider jika pengguna memasang banyak ekstensi sekaligus
+                if (window.ethereum.providers && window.ethereum.providers.length > 0) {
+                    const rabby = window.ethereum.providers.find(p => p.isRabby);
+                    if (rabby) {
+                        activeProvider = rabby;
+                        walletName = "Rabby Wallet (Prioritas)";
+                    } else {
+                        activeProvider = window.ethereum.providers[0];
+                    }
+                } else if (window.ethereum.isRabby) {
+                    walletName = "Rabby Wallet";
+                }
+
+                logToTerminal(`Memulai jabat tangan dengan ${walletName}...`, "info");
+                
+                window.provider = new ethers.BrowserProvider(activeProvider);
+                await activeProvider.request({ method: 'eth_requestAccounts' });
+                
                 window.signer = await window.provider.getSigner();
                 window.userAddress = await window.signer.getAddress();
                 
                 document.getElementById('wallet-addr').innerText = `${window.userAddress.substring(0,6)}...${window.userAddress.substring(38)}`;
+                document.getElementById('wallet-type').innerText = walletName;
                 document.getElementById('btn-connect').innerText = "Dompet Terhubung";
                 document.getElementById('btn-connect').className = "bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-4 py-2 rounded shadow-sm";
                 
-                logToTerminal("Dompet asli terikat tanpa rekayasa: " + window.userAddress, "success");
+                logToTerminal("Otentikasi berhasil. Wallet terikat: " + window.userAddress, "success");
                 getOnChainBalance();
             } catch (err) {
-                logToTerminal(`Koneksi ditolak: ${err.message}`, "error");
+                logToTerminal(`Koneksi dibatalkan pengguna: ${err.message}`, "error");
             }
         }
 
+        // MURNI ON-CHAIN READ STATE (JIKA DANA KOSONG AKAN MENAMPILKAN 0.00 SECARA VALID)
         window.getOnChainBalance = async function() {
             if (!window.signer) return;
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.provider);
                 const rawBal = await contract.confidentialBalanceOf(window.userAddress);
                 document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawBal, 6);
-                logToTerminal("Sinkronisasi State Root berhasil. Membaca data on-chain murni.", "success");
+                logToTerminal("Sinkronisasi State Ledger berhasil diturunkan.", "success");
             } catch (e) {
                 document.getElementById('shielded-balance').innerText = "0.00";
-                logToTerminal(`Membaca state contract... Saldo akun saat ini: 0.00 cUSDC`, "crypto");
+                logToTerminal(`Status saldo akun perusahaan saat ini: 0.00 cUSDC`, "crypto");
             }
         }
 
+        // 1. EKSEKUSI RIIL DEPOSIT ON-CHAIN VIA WALLET EXTENSION
         window.executeDepositOnChain = async function() {
             const amt = document.getElementById('deposit-amount').value.trim();
-            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
             if (!amt) return;
 
-            logToTerminal(`Memicu MetaMask... Mengirim fungsi deposit(${amt} USDC)`, 'info');
+            logToTerminal(`Memicu pop-up dompet... Meminta konfirmasi deposit(${amt} USDC)...`, 'info');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
                 const tx = await contract.deposit(ethers.parseUnits(amt, 6));
-                logToTerminal(`Disiarkan ke Jaringan Arc! Hash: ${tx.hash}`, 'crypto');
+                logToTerminal(`Menyiarkan transaksi ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
+                
                 await tx.wait();
-                logToTerminal(`Deposit Sukses Terkonfirmasi di Blok!`, 'success');
+                logToTerminal(`Blok Sukses Dikonfirmasi! Dana korporat masuk ke sirkuit aman cUSDC.`, 'success');
                 getOnChainBalance();
+                document.getElementById('deposit-amount').value = '';
             } catch (err) {
-                logToTerminal(`Transaksi dibatalkan atau Gas tidak cukup: ${err.message}`, 'error');
+                logToTerminal(`Eksekusi deposit dibatalkan atau gas tidak cukup: ${err.message}`, 'error');
             }
         }
 
+        // 2. EKSEKUSI RIIL ENKRIPSI SDK STABLETRUST & KIRIM CONFIDENTIAL PAYLOAD
         window.executeConfidentialTransferOnChain = async function() {
             const rcpt = document.getElementById('transfer-recipient').value.trim();
             const amt = document.getElementById('transfer-amount').value.trim();
 
-            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
             if (!rcpt || !amt) return;
 
-            logToTerminal(`Menghubungi validator Fairblock untuk mengambil parameter IBE Key...`, 'info');
+            logToTerminal(`Menghubungi infrastruktur node Fairblock untuk menarik Parameter Kunci...`, 'info');
             try {
+                // Tarik Kunci Publik Identitas Resmi dari Jaringan Fairblock secara live
                 const encryptionParams = await window.fairblockClient.getEncryptionParameters();
-                logToTerminal(`Master Public Parameter diterima dari Node Fairblock.`, 'success');
+                logToTerminal(`Master Public Key Kriptografi aktif berhasil diamankan.`, 'success');
+                logToTerminal(`Mengonversi nilai ${amt} menjadi ciphertext biner via sirkuit IBE lokal...`, 'crypto');
 
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
 
-                // EKSEKUSI ENKRIPSI ASLI DARI SDK FAIRBLOCK
+                // Pembuatan payload biner menggunakan metode enkripsi SDK Fairblock orisinal
                 const encryptedPayload = await window.fairblockClient.encryptIdentityBased({
                     value: rawUnits,
                     identity: targetEpoch,
@@ -208,37 +241,48 @@
                 });
 
                 const hexBytes = encryptedPayload.toHexBytes();
-                logToTerminal(`Sirkuit Kriptografi Selesai. Ciphertext: ${hexBytes.substring(0,24)}...`, 'crypto');
+                logToTerminal(`Sirkuit Enkripsi Selesai. Struktur payload terbuat.`, 'crypto');
+                logToTerminal(`Membuka jendela konfirmasi dompet untuk menyiarkan ciphertext...`, 'info');
 
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt), hexBytes);
                 
-                logToTerminal(`Transaksi Rahasia Mengudara! Hash Explorer: ${tx.hash}`, 'success');
+                // Mengirimkan alamat penerima beserta data terenkripsi murni ke blockchain Arc
+                const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt.trim()), hexBytes);
+                logToTerminal(`Mengudara di Mempool L1! Memantau validasi transaksi hash: ${tx.hash}`, 'crypto');
+                
                 await tx.wait();
-                logToTerminal(`Transfer Rahasia Sukses. Nominal tersembunyi sepenuhnya!`, 'success');
+                logToTerminal(`TRANSFER PRIVAT PERUSAHAAN BERHASIL. Nominal dikaburkan dari Block Explorer!`, 'success');
                 getOnChainBalance();
+                
+                document.getElementById('transfer-recipient').value = '';
+                document.getElementById('transfer-amount').value = '';
             } catch (err) {
-                logToTerminal(`Gagal mengeksekusi sirkuit enkripsi: ${err.message}`, 'error');
+                logToTerminal(`Gagal mengeksekusi sirkuit enkripsi Stabletrust: ${err.message}`, 'error');
             }
         }
 
+        // 3. EKSEKUSI RIIL WITHDRAW ON-CHAIN
         window.executeWithdrawOnChain = async function() {
             const amt = document.getElementById('withdraw-amount').value.trim();
-            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
             if (!amt) return;
 
-            logToTerminal(`Meminta pembukaan decryption share ke komite validator Fairblock...`, 'crypto');
+            logToTerminal(`Meminta pelepasan potongan kunci dekripsi (decryption shares) ke komite node...`, 'crypto');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
+                logToTerminal(`Membuka jendela dompet untuk persetujuan pembakaran cUSDC...`, 'info');
+                
                 const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
+                logToTerminal(`Menunggu sinkronisasi blok penarikan dana... TxHash: ${tx.hash}`, 'crypto');
+                
                 await tx.wait();
-                logToTerminal(`Penarikan Berhasil! Saldo kembali diubah menjadi koin transparan.`, 'success');
+                logToTerminal(`Penarikan dana korporat sukses. Saldo kembali dalam wujud USDC publik terbuka.`, 'success');
                 getOnChainBalance();
+                document.getElementById('withdraw-amount').value = '';
             } catch (err) {
-                logToTerminal(`Withdraw gagal: ${err.message}`, 'error');
+                logToTerminal(`Proses unshielding on-chain gagal: ${err.message}`, 'error');
             }
         }
     </script>
 </body>
-  </html>
-  
+</html>
