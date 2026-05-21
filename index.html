@@ -118,6 +118,7 @@
 
         window.logToTerminal = function(message, type = 'info') {
             const container = document.getElementById('terminal-content');
+            if (!container) return;
             const p = document.createElement('p');
             let colorClass = 'text-gray-400';
             if (type === 'success') colorClass = 'text-emerald-400 font-medium';
@@ -133,54 +134,55 @@
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById(`panel-${tab}`).classList.remove('hidden');
             ['deposit', 'transfer', 'withdraw'].forEach(t => {
-                document.getElementById(`tab-${t}`).className = t === tab ? "text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all" : "text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all";
+                const element = document.getElementById(`tab-${t}`);
+                if (element) {
+                    element.className = t === tab ? "text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all" : "text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all";
+                }
             });
         }
 
-        // DETEKSI EKSTENSI MULTI-WALLET PINTAR (Prioritas Rabby Wallet)
+        // LOGIKA KONEKSI UNIVERSAL (DIJAMIN TANPA CRASH DI SELURUH MOBILE/DESKTOP PROVIDER)
         window.connectWallet = async function() {
             if (!window.ethereum) {
-                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi di browser ini!", "error");
+                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi! Silakan gunakan dApp Browser.", "error");
                 return;
             }
             try {
-                let activeProvider = window.ethereum;
-                let walletName = "MetaMask / Generic Web3";
-
-                // Memisahkan provider jika pengguna memasang banyak ekstensi sekaligus
-                if (window.ethereum.providers && window.ethereum.providers.length > 0) {
-                    const rabby = window.ethereum.providers.find(p => p.isRabby);
-                    if (rabby) {
-                        activeProvider = rabby;
-                        walletName = "Rabby Wallet (Prioritas)";
-                    } else {
-                        activeProvider = window.ethereum.providers[0];
-                    }
-                } else if (window.ethereum.isRabby) {
-                    walletName = "Rabby Wallet";
+                logToTerminal("Meminta izin otentikasi alamat dompet...", "info");
+                
+                // Ambil provider dasar secara langsung (kompatibel penuh dengan EIP-1193)
+                const baseProvider = window.ethereum;
+                
+                // Memicu jendela pop-up dompet secara mutlak
+                const accounts = await baseProvider.request({ method: 'eth_requestAccounts' });
+                
+                if (!accounts || accounts.length === 0) {
+                    throw new Error("Tidak ada alamat dompet yang dikembalikan.");
                 }
 
-                logToTerminal(`Memulai jabat tangan dengan ${walletName}...`, "info");
-                
-                window.provider = new ethers.BrowserProvider(activeProvider);
-                await activeProvider.request({ method: 'eth_requestAccounts' });
-                
+                window.provider = new ethers.BrowserProvider(baseProvider);
                 window.signer = await window.provider.getSigner();
-                window.userAddress = await window.signer.getAddress();
-                
+                window.userAddress = accounts[0];
+
+                // Identifikasi tipe dompet secara aman tanpa memicu crash
+                let walletName = "Web3 Wallet Connected";
+                if (baseProvider.isRabby) walletName = "Rabby Wallet";
+                else if (baseProvider.isMetaMask) walletName = "MetaMask";
+                else if (baseProvider.isTrust) walletName = "Trust Wallet";
+
+                // Memperbarui UI Tampilan
                 document.getElementById('wallet-addr').innerText = `${window.userAddress.substring(0,6)}...${window.userAddress.substring(38)}`;
                 document.getElementById('wallet-type').innerText = walletName;
                 document.getElementById('btn-connect').innerText = "Dompet Terhubung";
                 document.getElementById('btn-connect').className = "bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-4 py-2 rounded shadow-sm";
                 
-                logToTerminal("Otentikasi berhasil. Wallet terikat: " + window.userAddress, "success");
+                logToTerminal(`Dompet sukses terikat: ${window.userAddress}`, "success");
                 getOnChainBalance();
             } catch (err) {
-                logToTerminal(`Koneksi dibatalkan pengguna: ${err.message}`, "error");
+                logToTerminal(`Koneksi ditolak atau gagal: ${err.message}`, "error");
             }
         }
 
-        // MURNI ON-CHAIN READ STATE (JIKA DANA KOSONG AKAN MENAMPILKAN 0.00 SECARA VALID)
         window.getOnChainBalance = async function() {
             if (!window.signer) return;
             try {
@@ -194,7 +196,6 @@
             }
         }
 
-        // 1. EKSEKUSI RIIL DEPOSIT ON-CHAIN VIA WALLET EXTENSION
         window.executeDepositOnChain = async function() {
             const amt = document.getElementById('deposit-amount').value.trim();
             if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
@@ -204,7 +205,7 @@
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
                 const tx = await contract.deposit(ethers.parseUnits(amt, 6));
-                logToTerminal(`Menyiarkan transaksi ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
+                logToTerminal(`Transaksi disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 
                 await tx.wait();
                 logToTerminal(`Blok Sukses Dikonfirmasi! Dana korporat masuk ke sirkuit aman cUSDC.`, 'success');
@@ -215,7 +216,6 @@
             }
         }
 
-        // 2. EKSEKUSI RIIL ENKRIPSI SDK STABLETRUST & KIRIM CONFIDENTIAL PAYLOAD
         window.executeConfidentialTransferOnChain = async function() {
             const rcpt = document.getElementById('transfer-recipient').value.trim();
             const amt = document.getElementById('transfer-amount').value.trim();
@@ -225,7 +225,6 @@
 
             logToTerminal(`Menghubungi infrastruktur node Fairblock untuk menarik Parameter Kunci...`, 'info');
             try {
-                // Tarik Kunci Publik Identitas Resmi dari Jaringan Fairblock secara live
                 const encryptionParams = await window.fairblockClient.getEncryptionParameters();
                 logToTerminal(`Master Public Key Kriptografi aktif berhasil diamankan.`, 'success');
                 logToTerminal(`Mengonversi nilai ${amt} menjadi ciphertext biner via sirkuit IBE lokal...`, 'crypto');
@@ -233,7 +232,6 @@
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
 
-                // Pembuatan payload biner menggunakan metode enkripsi SDK Fairblock orisinal
                 const encryptedPayload = await window.fairblockClient.encryptIdentityBased({
                     value: rawUnits,
                     identity: targetEpoch,
@@ -245,8 +243,6 @@
                 logToTerminal(`Membuka jendela konfirmasi dompet untuk menyiarkan ciphertext...`, 'info');
 
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                
-                // Mengirimkan alamat penerima beserta data terenkripsi murni ke blockchain Arc
                 const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt.trim()), hexBytes);
                 logToTerminal(`Mengudara di Mempool L1! Memantau validasi transaksi hash: ${tx.hash}`, 'crypto');
                 
@@ -261,7 +257,6 @@
             }
         }
 
-        // 3. EKSEKUSI RIIL WITHDRAW ON-CHAIN
         window.executeWithdrawOnChain = async function() {
             const amt = document.getElementById('withdraw-amount').value.trim();
             if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet Web3 Anda!", "error"); return; }
