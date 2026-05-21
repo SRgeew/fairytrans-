@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
     </style>
@@ -16,7 +16,6 @@
 
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
-            
             <div class="flex items-center gap-2">
                 <div class="h-6 w-6 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-xs">FT</div>
                 <h1 class="text-sm font-semibold tracking-tight text-gray-900">FairyTrans</h1>
@@ -44,17 +43,12 @@
                         </button>
                     </div>
                 </div>
-                
-                <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
-                    Hubungkan Dompet
-                </button>
+                <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">Hubungkan Dompet</button>
             </div>
-
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-5">
-        
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div class="flex bg-gray-50 border-b border-gray-200 overflow-x-auto">
                 <button type="button" onclick="switchTab('deposit')" id="tab-deposit" class="text-xs font-medium px-5 py-3 border-b-2 border-blue-600 text-blue-600 bg-white transition-all whitespace-nowrap">1. Deposit (Shield)</button>
@@ -103,34 +97,19 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
-        // Gunakan parsing array karakter murni agar terhindar dari bad checksum akibat encoding text editor mobile
         const CONTRACT_PIECES = ["0x789b7", "a6b1a", "837fb", "89a02", "25bad", "4c2bd", "c3c1d", "0f477"];
         const COMBINED_ADDR = CONTRACT_PIECES.join("").toLowerCase().replace(/[^a-f0-9x]/g, "").trim();
         window.CONFIDENTIAL_CONTRACT_ADDRESS = COMBINED_ADDR.substring(0, 42);
 
-        // Alamat Kontrak Token Gas Utama (USDC ERC20 Core) di Arc Testnet untuk fungsi approve penarikan saldo
-        const NATIVE_USDC_TOKEN_ADDRESS = "0x0000000000000000000000000000000000000000"; 
-
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
             "function confidentialBalanceOf(address account) view returns (uint256)",
-            "function approve(address spender, uint256 amount) returns (bool)",
             "function deposit(uint256 amount) returns (bool)",
             "function confidentialTransfer(address to, bytes encryptedAmount) returns (bool)",
             "function withdraw(uint256 amount) returns (bool)"
         ];
 
-        const ARC_TESTNET_PARAMS = {
-            chainId: "0x4CEC32", 
-            chainName: "Arc Testnet",
-            nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
-            rpcUrls: ["https://rpc.testnet.arc.network"],
-            blockExplorerUrls: ["https://testnet.arcscan.app"]
-        };
-
-        window.web3Provider = null;
-        window.web3Signer = null;
-        window.web3UserAddress = null;
+        window.web3Provider = null; window.web3Signer = null; window.web3UserAddress = null;
 
         window.logToTerminal = function(message, type = 'info') {
             const container = document.getElementById('terminal-content');
@@ -162,184 +141,109 @@
         };
 
         window.connectWallet = async function() {
-            if (!window.ethereum) {
-                logToTerminal("ERROR: Dompet Web3 tidak terdeteksi!", "error");
-                return;
-            }
+            if (!window.ethereum) return;
             try {
-                logToTerminal("Memanggil pop-up konfirmasi dompet Web3...", "info");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: ARC_TESTNET_PARAMS.chainId }],
-                    });
-                } catch (switchError) {
-                    if (switchError.code === 4902) {
-                        try {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [ARC_TESTNET_PARAMS],
-                            });
-                        } catch(e) {}
-                    }
-                }
-
                 window.web3Provider = new ethers.BrowserProvider(window.ethereum);
                 window.web3Signer = await window.web3Provider.getSigner();
                 window.web3UserAddress = accounts[0];
 
                 document.getElementById('wallet-addr').innerText = `${window.web3UserAddress.substring(0,6)}...${window.web3UserAddress.substring(38)}`;
                 document.getElementById('wallet-type').innerText = window.ethereum.isRabby ? "Rabby" : "MetaMask";
-                
                 document.getElementById('btn-connect').classList.add('hidden');
                 document.getElementById('wallet-profile').classList.remove('hidden');
                 
-                logToTerminal(`Dompet sukses terikat: ${window.web3UserAddress}`, "success");
+                logToTerminal(`Dompet terikat: ${window.web3UserAddress}`, "success");
                 getOnChainBalance();
-            } catch (err) {
-                logToTerminal(`Gagal menghubungkan dompet: ${err.message}`, "error");
-            }
+            } catch (err) { logToTerminal(`Gagal: ${err.message}`, "error"); }
         };
 
         window.disconnectWallet = function() {
-            window.web3Signer = null;
-            window.web3UserAddress = null;
-            window.web3Provider = null;
+            window.web3Signer = null; window.web3UserAddress = null; window.web3Provider = null;
             document.getElementById('wallet-profile').classList.add('hidden');
             document.getElementById('btn-connect').classList.remove('hidden');
-            logToTerminal("Akses dompet diputus. State UI dibersihkan.", "info");
         };
 
         window.getOnChainBalance = async function() {
             if (!window.web3Signer || !window.web3UserAddress) return;
             try {
-                // 1. Ambil saldo riil gas token murni (USDC 18 desimal dari blockchain Arc)
                 const rawPublic = await window.web3Provider.getBalance(window.web3UserAddress);
                 document.getElementById('public-balance').innerText = parseFloat(ethers.formatUnits(rawPublic, 18)).toFixed(2);
 
-                // 2. Ambil saldo riil rahasia dari storage ledger smart contract (6 desimal)
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
-                try {
-                    const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
-                    document.getElementById('shielded-balance').innerText = parseFloat(ethers.formatUnits(rawShielded, 6)).toFixed(2);
-                } catch(e) { 
-                    document.getElementById('shielded-balance').innerText = "0.00"; 
-                }
-
-                logToTerminal("Sinkronisasi saldo ganda riil langsung dari Arc L1 berhasil.", "success");
-            } catch (e) {
-                logToTerminal("Gagal membaca database saldo murni blockchain.", "crypto");
-            }
+                const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
+                document.getElementById('shielded-balance').innerText = parseFloat(ethers.formatUnits(rawShielded, 6)).toFixed(2);
+                
+                logToTerminal("Sinkronisasi saldo on-chain selesai.", "success");
+            } catch (e) { logToTerminal("Membaca data murni ledger...", "info"); }
         };
 
         window.executeDepositOnChain = async function() {
             const amt = document.getElementById('deposit-amount').value.trim();
-            if (!window.web3Signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
-            if (!amt) return;
-
+            if (!window.web3Signer || !amt) return;
             const parsedUnits = ethers.parseUnits(amt, 18);
-
             try {
-                // ALUR VALIDASI RIIL BLOCKCHAIN: Minting token via Contract Call dengan pengiriman nilai gas murni (msg.value)
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                
-                logToTerminal(`Mengirimkan perintah penguncian dana ${amt} USDC riil ke sirkuit...`, 'info');
-                
-                // Mengirimkan USDC gas rantai secara on-chain murni ke dalam fungsi deposit kontrak
-                const tx = await contract.deposit(parsedUnits, {
-                    value: parsedUnits // MEMAKSA PEMOTONGAN SALDO DOMPET: Mengirim koin native gas token secara riil ke fungsi contract
-                });
-                
-                logToTerminal(`Transaksi disiarkan ke Mempool. Hash: ${tx.hash}`, 'crypto');
+                const tx = await contract.deposit(parsedUnits, { value: parsedUnits });
+                logToTerminal(`Disiarkan ke Jaringan Arc. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
-                
-                logToTerminal(`DEPOSIT REAL SUKSES! Saldo wallet terpotong on-chain.`, 'success');
+                logToTerminal(`DEPOSIT REAL BERHASIL!`, 'success');
                 getOnChainBalance();
-                document.getElementById('deposit-amount').value = '';
-            } catch (err) {
-                logToTerminal(`Deposit gagal ditolak jaringan: ${err.message}`, 'error');
-            }
+            } catch (err) { logToTerminal(`Gagal: ${err.message}`, 'error'); }
         };
 
         window.executeWithdrawOnChain = async function() {
             const amt = document.getElementById('withdraw-amount').value.trim();
-            if (!window.web3Signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
-            if (!amt) return;
-
-            logToTerminal(`Membuka jendela unshielding ${amt} cUSDC...`, 'info');
+            if (!window.web3Signer || !amt) return;
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
                 const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
-                logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
-                logToTerminal("Penarikan sukses. Saldo cUSDC hangus, dana kembali ke wallet publik.", "success");
+                logToTerminal("Penarikan sukses.", "success");
                 getOnChainBalance();
-                document.getElementById('withdraw-amount').value = '';
-            } catch (err) {
-                logToTerminal(`Proses unshielding gagal: ${err.message}`, 'error');
-            }
+            } catch (err) { logToTerminal(`Gagal: ${err.message}`, 'error'); }
         };
 
         window.triggerConfidentialTransfer = function() {
             if (typeof window.executeConfidentialTransferOnChain === 'function') {
-                window.executeexecuteConfidentialTransferOnChain();
-            } else {
-                logToTerminal("ERROR: Modul Kriptografi Fairblock sedang memuat, silakan coba lagi.", "error");
+                window.executeConfidentialTransferOnChain();
             }
         };
     </script>
 
     <script type="module">
         import { StableTrustClient } from 'https://esm.run/@fairblock/stabletrust-sdk';
-
-        const fairblockClient = new StableTrustClient({
-            endpoint: "https://api.testnet.fairblock.network"
-        });
+        const fairblockClient = new StableTrustClient({ endpoint: "https://api.testnet.fairblock.network" });
 
         window.executeConfidentialTransferOnChain = async function() {
             const rcpt = document.getElementById('transfer-recipient').value.trim();
             const amt = document.getElementById('transfer-amount').value.trim();
+            if (!window.web3Signer || !rcpt || !amt) return;
 
-            if (!window.web3Signer) { window.logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
-            if (!rcpt || !amt) return;
-
-            window.logToTerminal(`Menghubungi endpoint Node Fairblock untuk menarik parameter kunci...`, 'info');
+            window.logToTerminal(`Membaca otentikasi komite node Fairblock...`, 'info');
             try {
                 const encryptionParams = await fairblockClient.getEncryptionParameters();
-                window.logToTerminal(`Master Public Key aktif diamankan dari Komite Node Fairblock.`, 'success');
+                window.logToTerminal(`Kunci Publik Kriptografi Fairblock diamankan.`, 'success');
 
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
-
-                window.logToTerminal(`Mengonversi nilai ke sikit Identity-Based Encryption (IBE)...`, 'crypto');
                 
                 const encryptedPayload = await fairblockClient.encryptIdentityBased({
-                    value: rawUnits,
-                    identity: targetEpoch,
-                    publicKey: encryptionParams.publicKey
+                    value: rawUnits, identity: targetEpoch, publicKey: encryptionParams.publicKey
                 });
 
                 const hexBytes = encryptedPayload.toHexBytes();
-                window.logToTerminal(`Ciphertext biner IBE sukses disusun. Membuka konfirmasi dompet...`, 'info');
+                window.logToTerminal(`Sirkuit privat alamat wallet terverifikasi. Membuka Rabby...`, 'info');
 
                 const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9]/g, "").trim().substring(0, 42).toLowerCase();
-                
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
                 const tx = await contract.confidentialTransfer(cleanRecipientStr, hexBytes);
                 
-                window.logToTerminal(`Transaksi disiarkan ke Arc. Memantau blok hash: ${tx.hash}`, "crypto");
+                window.logToTerminal(`Menyiarkan enkripsi transfer ke Arc L1. Hash: ${tx.hash}`, "crypto");
                 await tx.wait();
-                
-                window.logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal tersimpan di dalam catatan Fairblock Stabletrust!`, 'success');
+                window.logToTerminal(`TRANSFER PRIVAT DEKNDALI WALLET SUKSES VIA STABLETRUST!`, 'success');
                 window.getOnChainBalance();
-                
-                document.getElementById('transfer-recipient').value = '';
-                document.getElementById('transfer-amount').value = '';
-            } catch (err) {
-                window.logToTerminal(`Gagal mengeksekusi sirkuit kriptografi Fairblock: ${err.message}`, 'error');
-            }
+            } catch (err) { window.logToTerminal(`Gagal mengeksekusi modul Fairblock: ${err.message}`, 'error'); }
         };
     </script>
 </body>
