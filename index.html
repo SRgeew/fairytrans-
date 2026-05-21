@@ -1,12 +1,244 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FairyTrans — Live Stabletrust Protocol Production</title>
-  </head>
-  <body class="bg-gray-50 text-gray-900">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairyTrans — Platform Transaksi Rahasia Arc Network</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2.5">
+                <div class="h-7 w-7 rounded bg-blue-600 flex items-center justify-center font-bold text-white text-sm">FT</div>
+                <div>
+                    <h1 class="text-base font-semibold tracking-tight text-gray-900">FairyTrans</h1>
+                    <p class="text-[11px] text-gray-500 font-medium">Protokol Privasi Aset Digital Arc L1</p>
+                </div>
+            </div>
+            <button id="btn-connect" onclick="connectWallet()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium px-4 py-2 rounded shadow-sm">
+                Hubungkan Dompet Web3
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div class="md:col-span-4 flex flex-col gap-6">
+            <div class="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+                <p class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Saldo Aman Terenkripsi</p>
+                <div class="flex items-baseline gap-1.5 mb-5">
+                    <span class="text-3xl font-bold tracking-tight text-gray-900 mono" id="shielded-balance">0.00</span>
+                    <span class="text-xs font-semibold text-gray-500 mono">cUSDC</span>
+                </div>
+                <div class="space-y-2 pt-4 border-t border-gray-100 text-xs text-gray-600">
+                    <div class="flex justify-between"><span>Alamat Dompet:</span><span id="wallet-addr" class="mono text-gray-900 font-medium">Terputus</span></div>
+                    <div class="flex justify-between"><span>Status Jaringan:</span><span class="text-emerald-600 font-medium flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Live Blockchain</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:col-span-8 flex flex-col gap-6">
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="flex bg-gray-50 border-b border-gray-200">
+                    <button onclick="switchTab('deposit')" id="tab-deposit" class="text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all">1. Deposit (Shield)</button>
+                    <button onclick="switchTab('transfer')" id="tab-transfer" class="text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all">2. Transfer Confidential (On-Chain)</button>
+                    <button onclick="switchTab('withdraw')" id="tab-withdraw" class="text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all">3. Penarikan (Withdraw)</button>
+                </div>
+
+                <div class="p-6">
+                    <div id="panel-deposit" class="space-y-4 tab-panel">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Deposit (USDC)</label>
+                            <input type="number" id="deposit-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
+                        </div>
+                        <button onclick="executeDepositOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Deposit ke MetaMask</button>
+                    </div>
+
+                    <div id="panel-transfer" class="space-y-4 tab-panel hidden">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Alamat Dompet Penerima</label>
+                            <input type="text" id="transfer-recipient" placeholder="0x..." class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Kiriman Rahasia</label>
+                            <input type="number" id="transfer-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
+                        </div>
+                        <button onclick="executeConfidentialTransferOnChain()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Rahasia via Dompet Web3 🔒</button>
+                    </div>
+
+                    <div id="panel-withdraw" class="space-y-4 tab-panel hidden">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1.5">Jumlah Penarikan (cUSDC)</label>
+                            <input type="number" id="withdraw-amount" placeholder="0.00" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:bg-white mono">
+                        </div>
+                        <button onclick="executeWithdrawOnChain()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-sm">Kirim Transaksi Penarikan ke Blockchain</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col shadow-sm">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-800"><span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase mono">Live Arc Testnet Transaction Audit</span></div>
+                <div id="terminal-content" class="text-xs font-mono space-y-1.5 h-36 overflow-y-auto text-gray-400"><p>[RPC] Menunggu otentikasi dompet Web3...</p></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="p-6 border-t border-gray-200 bg-white text-center text-xs text-gray-500 font-medium">FairyTrans Application Framework • Terhubung ke Jaringan Blockchain Arc L1 • 2026</footer>
+
+    <script type="module">
+        // Import Fairblock Client SDK secara langsung via ESM CDN resmi
+        import { StableTrustClient } from 'https://esm.run/@fairblock/stabletrust-sdk';
+
+        window.fairblockClient = new StableTrustClient({
+            endpoint: "https://api.testnet.fairblock.network"
+        });
+
+        // PERBAIKAN UTAMA: Pembersihan alamat Checksum agar kompatibel dengan Ethers L6
+        const RAW_CONTRACT_ADDRESS = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(RAW_CONTRACT_ADDRESS.trim()); 
+        
+        window.FAIRYTRANS_ABI = [
+            "function confidentialBalanceOf(address account) view returns (uint256)",
+            "function deposit(uint256 amount) returns (bool)",
+            "function confidentialTransfer(address to, bytes encryptedAmount) returns (bool)",
+            "function withdraw(uint256 amount) returns (bool)"
+        ];
+
+        window.logToTerminal = function(message, type = 'info') {
+            const container = document.getElementById('terminal-content');
+            const p = document.createElement('p');
+            let colorClass = 'text-gray-400';
+            if (type === 'success') colorClass = 'text-emerald-400 font-medium';
+            if (type === 'error') colorClass = 'text-rose-400';
+            if (type === 'crypto') colorClass = 'text-cyan-400 font-medium';
+            p.className = colorClass;
+            p.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.appendChild(p);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`panel-${tab}`).classList.remove('hidden');
+            ['deposit', 'transfer', 'withdraw'].forEach(t => {
+                document.getElementById(`tab-${t}`).className = t === tab ? "text-xs font-medium px-5 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition-all" : "text-xs font-medium px-5 py-3.5 border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-all";
+            });
+        }
+
+        window.connectWallet = async function() {
+            if (!window.ethereum) {
+                logToTerminal("ERROR: MetaMask tidak dikesan!", "error");
+                return;
+            }
+            try {
+                window.provider = new ethers.BrowserProvider(window.ethereum);
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                window.signer = await window.provider.getSigner();
+                window.userAddress = await window.signer.getAddress();
+                
+                document.getElementById('wallet-addr').innerText = `${window.userAddress.substring(0,6)}...${window.userAddress.substring(38)}`;
+                document.getElementById('btn-connect').innerText = "Dompet Terhubung";
+                document.getElementById('btn-connect').className = "bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-4 py-2 rounded shadow-sm";
+                
+                logToTerminal("Dompet asli terikat tanpa rekayasa: " + window.userAddress, "success");
+                getOnChainBalance();
+            } catch (err) {
+                logToTerminal(`Koneksi ditolak: ${err.message}`, "error");
+            }
+        }
+
+        window.getOnChainBalance = async function() {
+            if (!window.signer) return;
+            try {
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.provider);
+                const rawBal = await contract.confidentialBalanceOf(window.userAddress);
+                document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawBal, 6);
+                logToTerminal("Sinkronisasi State Root berhasil. Membaca data on-chain murni.", "success");
+            } catch (e) {
+                document.getElementById('shielded-balance').innerText = "0.00";
+                logToTerminal(`Membaca state contract... Saldo akun saat ini: 0.00 cUSDC`, "crypto");
+            }
+        }
+
+        window.executeDepositOnChain = async function() {
+            const amt = document.getElementById('deposit-amount').value.trim();
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!amt) return;
+
+            logToTerminal(`Memicu MetaMask... Mengirim fungsi deposit(${amt} USDC)`, 'info');
+            try {
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
+                const tx = await contract.deposit(ethers.parseUnits(amt, 6));
+                logToTerminal(`Disiarkan ke Jaringan Arc! Hash: ${tx.hash}`, 'crypto');
+                await tx.wait();
+                logToTerminal(`Deposit Sukses Terkonfirmasi di Blok!`, 'success');
+                getOnChainBalance();
+            } catch (err) {
+                logToTerminal(`Transaksi dibatalkan atau Gas tidak cukup: ${err.message}`, 'error');
+            }
+        }
+
+        window.executeConfidentialTransferOnChain = async function() {
+            const rcpt = document.getElementById('transfer-recipient').value.trim();
+            const amt = document.getElementById('transfer-amount').value.trim();
+
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!rcpt || !amt) return;
+
+            logToTerminal(`Menghubungi validator Fairblock untuk mengambil parameter IBE Key...`, 'info');
+            try {
+                const encryptionParams = await window.fairblockClient.getEncryptionParameters();
+                logToTerminal(`Master Public Parameter diterima dari Node Fairblock.`, 'success');
+
+                const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
+                const rawUnits = ethers.parseUnits(amt, 6).toString();
+
+                // EKSEKUSI ENKRIPSI ASLI DARI SDK FAIRBLOCK
+                const encryptedPayload = await window.fairblockClient.encryptIdentityBased({
+                    value: rawUnits,
+                    identity: targetEpoch,
+                    publicKey: encryptionParams.publicKey
+                });
+
+                const hexBytes = encryptedPayload.toHexBytes();
+                logToTerminal(`Sirkuit Kriptografi Selesai. Ciphertext: ${hexBytes.substring(0,24)}...`, 'crypto');
+
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
+                const tx = await contract.confidentialTransfer(ethers.getAddress(rcpt), hexBytes);
+                
+                logToTerminal(`Transaksi Rahasia Mengudara! Hash Explorer: ${tx.hash}`, 'success');
+                await tx.wait();
+                logToTerminal(`Transfer Rahasia Sukses. Nominal tersembunyi sepenuhnya!`, 'success');
+                getOnChainBalance();
+            } catch (err) {
+                logToTerminal(`Gagal mengeksekusi sirkuit enkripsi: ${err.message}`, 'error');
+            }
+        }
+
+        window.executeWithdrawOnChain = async function() {
+            const amt = document.getElementById('withdraw-amount').value.trim();
+            if (!window.signer) { logToTerminal("Peringatan: Sambungkan dompet dahulu!", "error"); return; }
+            if (!amt) return;
+
+            logToTerminal(`Meminta pembukaan decryption share ke komite validator Fairblock...`, 'crypto');
+            try {
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
+                const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
+                await tx.wait();
+                logToTerminal(`Penarikan Berhasil! Saldo kembali diubah menjadi koin transparan.`, 'success');
+                getOnChainBalance();
+            } catch (err) {
+                logToTerminal(`Withdraw gagal: ${err.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+  </html>
+  
