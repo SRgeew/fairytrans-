@@ -103,10 +103,9 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
-        const CLEAN_ADDR = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477".replace(/[^a-fA-F0-9xX]/g, "").trim();
-        window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(CLEAN_ADDR); 
+        const RAW_ADDR = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = RAW_ADDR.replace(/[^a-fA-F0-9xX]/g, "").trim();
         
-        // UPDATE ABI: Menambahkan fungsi balanceOf untuk membaca token USDC dasar/publik
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
             "function confidentialBalanceOf(address account) view returns (uint256)",
@@ -114,6 +113,14 @@
             "function confidentialTransfer(address to, bytes encryptedAmount) returns (bool)",
             "function withdraw(uint256 amount) returns (bool)"
         ];
+
+        const ARC_TESTNET_PARAMS = {
+            chainId: "0x20A",
+            chainName: "Arc Testnet",
+            nativeCurrency: { name: "Arc Token", symbol: "ARC", decimals: 18 },
+            rpcUrls: ["https://rpc.testnet.arc.network"],
+            blockExplorerUrls: ["https://explorer.testnet.arc.network"]
+        };
 
         window.logToTerminal = function(message, type = 'info') {
             const container = document.getElementById('terminal-content');
@@ -153,6 +160,22 @@
                 logToTerminal("Memanggil pop-up konfirmasi dompet...", "info");
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: ARC_TESTNET_PARAMS.chainId }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [ARC_TESTNET_PARAMS],
+                            });
+                        } catch(e) {}
+                    }
+                }
+
                 window.provider = new ethers.BrowserProvider(window.ethereum);
                 window.signer = await window.provider.getSigner();
                 window.userAddress = accounts[0];
@@ -174,43 +197,31 @@
             }
         };
 
-        // FUNGSI BARU: Pemutus sambungan UI (Disconnect Wallet)
         window.disconnectWallet = function() {
             window.signer = null;
             window.userAddress = null;
-            
-            // Kembalikan komponen UI Header ke state awal
             document.getElementById('wallet-profile').classList.add('hidden');
             document.getElementById('btn-connect').classList.remove('hidden');
-            
-            // Reset indikator nominal angka di layar
             document.getElementById('public-balance').innerText = "0.00";
             document.getElementById('shielded-balance').innerText = "0.00";
-            
             logToTerminal("Akses dompet diputus. State UI dibersihkan.", "info");
         };
 
-        // UPDATE: Sinkronisasi ganda untuk membaca saldo USDC Publik dan cUSDC Privat sekaligus
         window.getOnChainBalance = async function() {
             if (!window.signer) return;
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.provider);
-                
-                // 1. Ambil saldo cUSDC (Terenkripsi)
                 try {
                     const rawShielded = await contract.confidentialBalanceOf(window.userAddress);
                     document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawShielded, 6);
                 } catch(e) { document.getElementById('shielded-balance').innerText = "0.00"; }
-
-                // 2. Ambil saldo USDC standar (Publik/Sebelum di-shield)
                 try {
                     const rawPublic = await contract.balanceOf(window.userAddress);
                     document.getElementById('public-balance').innerText = ethers.formatUnits(rawPublic, 6);
                 } catch(e) { document.getElementById('public-balance').innerText = "0.00"; }
-
-                logToTerminal("Sinkronisasi saldo ganda (USDC & cUSDC) berhasil diamankan.", "success");
+                logToTerminal("Sinkronisasi saldo ganda diperbarui.", "success");
             } catch (e) {
-                logToTerminal(`Gagal sinkronisasi data saldo on-chain murni.`, "crypto");
+                logToTerminal(`Gagal sinkronisasi data saldo murni.`, "crypto");
             }
         };
 
@@ -233,32 +244,6 @@
             }
         };
 
-        window.executeConfidentialTransferOnChain = async function() {
-            const rcpt = document.getElementById('transfer-recipient').value.trim();
-            const amt = document.getElementById('transfer-amount').value.trim();
-
-            if (!window.signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
-            if (!rcpt || !amt) return;
-
-            logToTerminal(`Menghubungkan ke sirkuit enkripsi lokal...`, 'info');
-            try {
-                const cleanRecipient = ethers.getAddress(rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim());
-                const fakeBytes = ethers.hexlify(ethers.randomBytes(64));
-                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
-                
-                const tx = await contract.confidentialTransfer(cleanRecipient, fakeBytes);
-                logToTerminal(`Transaksi diudarakan dengan hash aman: ${tx.hash}`, "crypto");
-                await tx.wait();
-                logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal disembunyikan!`, 'success');
-                getOnChainBalance();
-                
-                document.getElementById('transfer-recipient').value = '';
-                document.getElementById('transfer-amount').value = '';
-            } catch(err) {
-                logToTerminal(`Eror pengiriman transaksi: ${err.message}`, 'error');
-            }
-        };
-
         window.executeWithdrawOnChain = async function() {
             const amt = document.getElementById('withdraw-amount').value.trim();
             if (!window.signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
@@ -274,6 +259,65 @@
                 document.getElementById('withdraw-amount').value = '';
             } catch (err) {
                 logToTerminal(`Proses unshielding gagal: ${err.message}`, 'error');
+            }
+        };
+    </script>
+
+    <script type="module">
+        import { StableTrustClient } from 'https://esm.run/@fairblock/stabletrust-sdk';
+
+        // Inisialisasi Endpoint Jaringan Node Utama Fairblock
+        const fairblockClient = new StableTrustClient({
+            endpoint: "https://api.testnet.fairblock.network"
+        });
+
+        // Tembbak fungsi transfer asli terhubung penuh ke infrastruktur Kriptografi IBE
+        window.executeConfidentialTransferOnChain = async function() {
+            const rcpt = document.getElementById('transfer-recipient').value.trim();
+            const amt = document.getElementById('transfer-amount').value.trim();
+
+            if (!window.signer) { window.logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
+            if (!rcpt || !amt) return;
+
+            window.logToTerminal(`Menghubungi endpoint Node Fairblock untuk menarik parameter kunci...`, 'info');
+            try {
+                // 1. Ambil Master Public Key Resmi langsung dari Node Testnet Fairblock tanpa tiruan
+                const encryptionParams = await fairblockClient.getEncryptionParameters();
+                window.logToTerminal(`Master Public Key aktif diamankan dari Komite Node Fairblock.`, 'success');
+
+                const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
+                const rawUnits = ethers.parseUnits(amt, 6).toString();
+
+                window.logToTerminal(`Mengonversi nilai ke sirkuit Identity-Based Encryption (IBE)...`, 'crypto');
+                
+                // 2. Lakukan Enkripsi Kriptografi IBE murni di sisi client browser
+                const encryptedPayload = await fairblockClient.encryptIdentityBased({
+                    value: rawUnits,
+                    identity: targetEpoch,
+                    publicKey: encryptionParams.publicKey
+                });
+
+                const hexBytes = encryptedPayload.toHexBytes();
+                window.logToTerminal(`Ciphertext biner IBE berhasil disusun. Membuka konfirmasi dompet...`, 'info');
+
+                // 3. Bersihkan dan siarkan muatan data enkripsi murni ke smart contract Arc Network
+                const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim();
+                const cleanRecipient = ethers.getAddress(cleanRecipientStr);
+                
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.signer);
+                const tx = await contract.confidentialTransfer(cleanRecipient, hexBytes);
+                
+                window.logToTerminal(`Transaksi diudarakan di Mempool Arc. Memantau blok hash: ${tx.hash}`, "crypto");
+                await tx.wait();
+                
+                window.logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal tersimpan di dalam catatan Fairblock Stabletrust!`, 'success');
+                window.getOnChainBalance();
+                
+                document.getElementById('transfer-recipient').value = '';
+                document.getElementById('transfer-amount').value = '';
+            } catch (err) {
+                window.logToTerminal(`Gagal mengeksekusi sirkuit kriptografi Fairblock: ${err.message}`, 'error');
+                console.error(err);
             }
         };
     </script>
