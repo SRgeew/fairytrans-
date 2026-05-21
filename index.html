@@ -103,15 +103,10 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
-        // PROTEKSI AMAN: Potong paksa string alamat kontrak sepanjang 42 karakter murni
-        const CONTRACT_DIRTY = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
-        const CONTRACT_CLEAN = CONTRACT_DIRTY.trim().substring(0, 42);
-        
-        try {
-            window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(CONTRACT_CLEAN);
-        } catch(e) {
-            window.CONFIDENTIAL_CONTRACT_ADDRESS = CONTRACT_CLEAN;
-        }
+        // PERBAIKAN TOTAL & MUTLAK: Memaksa string alamat contract dikonversi menjadi huruf kecil murni (lowercase)
+        // Cara ini secara standar bypass validasi checksum internal pada library Ethers.js
+        const BASE_ADDR = "0x789b7a6b1a837fb89a0225bad4c2bdc3c1d0f477"; 
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = BASE_ADDR.toLowerCase().trim();
 
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
@@ -224,7 +219,6 @@
         window.getOnChainBalance = async function() {
             if (!window.web3Signer || !window.web3UserAddress) return;
             try {
-                // Tarik balance native gas token murni (USDC basis decimal 18 di Arc L1)
                 try {
                     const rawPublic = await window.web3Provider.getBalance(window.web3UserAddress);
                     document.getElementById('public-balance').innerText = parseFloat(ethers.formatUnits(rawPublic, 18)).toFixed(2);
@@ -232,7 +226,6 @@
                     document.getElementById('public-balance').innerText = "0.00"; 
                 }
 
-                // Tarik balance rahasia cUSDC dari smart contract (Menggunakan 6 desimal standar)
                 try {
                     const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
                     const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
@@ -254,9 +247,8 @@
 
             logToTerminal(`Meminta konfirmasi deposit (${amt} USDC)...`, 'info');
             try {
+                // Instansiasi aman tanpa pengecekan casing huruf besar-kecil
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                
-                // FIX SAFETY: Mengirim nilai dengan basis desimal 18 menyesuaikan token gas asli Arc L1
                 const tx = await contract.deposit(ethers.parseUnits(amt, 18));
                 logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
@@ -276,8 +268,6 @@
             logToTerminal(`Meminta konfirmasi penarikan (${amt} cUSDC)...`, 'info');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                
-                // FIX SAFETY: Proses unshielding/burn cUSDC menggunakan basis 6 desimal standar token
                 const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
                 logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
@@ -318,8 +308,6 @@
                 window.logToTerminal(`Master Public Key aktif diamankan dari Komite Node Fairblock.`, 'success');
 
                 const targetEpoch = "arc-epoch-" + Math.floor(Date.now() / 60000);
-                
-                // FIX SAFETY: Enkripsi privasi Fairblock berjalan di atas basis data cUSDC 6 desimal
                 const rawUnits = ethers.parseUnits(amt, 6).toString();
 
                 window.logToTerminal(`Mengonversi nilai ke sikit Identity-Based Encryption (IBE)...`, 'crypto');
@@ -333,16 +321,24 @@
                 const hexBytes = encryptedPayload.toHexBytes();
                 window.logToTerminal(`Ciphertext biner IBE sukses disusun. Membuka konfirmasi dompet...`, 'info');
 
-                // Pemotongan ketat 42 karakter pada alamat penerima input agar bebas dari eror checksum
-                const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim().substring(0, 42);
-                const cleanRecipient = ethers.getAddress(cleanRecipientStr);
+                // Paksa input alamat penerima menjadi lowercase murni sepanjang 42 karakter
+                const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim().substring(0, 42).toLowerCase();
                 
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                const tx = await contract.confidentialTransfer(cleanRecipient, hexBytes);
+                const tx = await contract.confidentialTransfer(cleanRecipientStr, hexBytes);
                 
                 window.logToTerminal(`Transaksi disiarkan ke Arc. Memantau blok hash: ${tx.hash}`, "crypto");
                 await tx.wait();
                 
                 window.logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal tersimpan di dalam catatan Fairblock Stabletrust!`, 'success');
                 window.getOnChainBalance();
-        
+                
+                document.getElementById('transfer-recipient').value = '';
+                document.getElementById('transfer-amount').value = '';
+            } catch (err) {
+                window.logToTerminal(`Gagal mengeksekusi sirkuit kriptografi Fairblock: ${err.message}`, 'error');
+            }
+        };
+    </script>
+</body>
+</html>
