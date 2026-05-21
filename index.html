@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .mono { font-family: 'JetBrains Mono', monospace; }
     </style>
@@ -103,8 +103,15 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
+        // PERBAIKAN MUTLAK: Memaksa penghapusan tanda koma, spasi, atau kutipan tak terlihat dari teks alamat kontrak
         const CONTRACT_RAW = "0x789b7A6B1A837fB89a0225baD4C2Bdc3C1D0F477";
-        window.CONFIDENTIAL_CONTRACT_ADDRESS = CONTRACT_RAW.replace(/[^a-fA-F0-9xX]/g, "").trim();
+        const CONTRACT_CLEAN = CONTRACT_RAW.replace(/[^a-fA-F0-9xX]/g, "").trim();
+        
+        try {
+            window.CONFIDENTIAL_CONTRACT_ADDRESS = ethers.getAddress(CONTRACT_CLEAN);
+        } catch(e) {
+            window.CONFIDENTIAL_CONTRACT_ADDRESS = CONTRACT_CLEAN;
+        }
 
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
@@ -114,7 +121,6 @@
             "function withdraw(uint256 amount) returns (bool)"
         ];
 
-        // UPDATE PARAMETER: Menggunakan Chain ID resmi Arc Testnet (5042002 desimal)
         const ARC_TESTNET_PARAMS = {
             chainId: "0x4CEC32", 
             chainName: "Arc Testnet",
@@ -216,21 +222,28 @@
         };
 
         window.getOnChainBalance = async function() {
-            if (!window.web3Signer) return;
+            if (!window.web3Signer || !window.web3UserAddress) return;
             try {
-                // Tarik data langsung menggunakan provider Arc RPC resmi
-                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
+                // Pembacaan saldo publik menggunakan fungsi asli bawaan provider RPC Arc
                 try {
+                    const rawPublic = await window.web3Provider.getBalance(window.web3UserAddress);
+                    document.getElementById('public-balance').innerText = parseFloat(ethers.formatUnits(rawPublic, 18)).toFixed(2);
+                } catch(e) { 
+                    document.getElementById('public-balance').innerText = "0.00"; 
+                }
+
+                // Pembacaan saldo privat dari fungsi dalam smart contract cUSDC
+                try {
+                    const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
                     const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
-                    document.getElementById('shielded-balance').innerText = ethers.formatUnits(rawShielded, 6);
-                } catch(e) { document.getElementById('shielded-balance').innerText = "0.00"; }
-                try {
-                    const rawPublic = await contract.balanceOf(window.web3UserAddress);
-                    document.getElementById('public-balance').innerText = ethers.formatUnits(rawPublic, 6);
-                } catch(e) { document.getElementById('public-balance').innerText = "0.00"; }
-                logToTerminal("Sinkronisasi saldo ganda berhasil diperbarui.", "success");
+                    document.getElementById('shielded-balance').innerText = parseFloat(ethers.formatUnits(rawShielded, 6)).toFixed(2);
+                } catch(e) { 
+                    document.getElementById('shielded-balance').innerText = "0.00"; 
+                }
+
+                logToTerminal("Sinkronisasi saldo ganda Arc L1 berhasil diperbarui.", "success");
             } catch (e) {
-                logToTerminal("Gagal sinkronisasi data saldo on-chain murni.", "crypto");
+                logToTerminal("Gagal membaca sinkronisasi saldo on-chain murni.", "crypto");
             }
         };
 
@@ -242,10 +255,12 @@
             logToTerminal(`Meminta konfirmasi deposit (${amt} USDC)...`, 'info');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                const tx = await contract.deposit(ethers.parseUnits(amt, 6));
+                
+                // Gas token di Arc L1 menggunakan basis decimal 18 untuk balance utama rantai
+                const tx = await contract.deposit(ethers.parseUnits(amt, 18));
                 logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
-                logToTerminal(`Deposit Sukses! Dana masuk ke sirkuit aman cUSDC.`, 'success');
+                logToTerminal(`Deposit Sukses! Dana masuk ke sikit aman cUSDC.`, 'success');
                 getOnChainBalance();
                 document.getElementById('deposit-amount').value = '';
             } catch (err) {
