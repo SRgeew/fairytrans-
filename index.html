@@ -103,13 +103,18 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
+        // Gunakan parsing array karakter murni agar terhindar dari bad checksum akibat encoding text editor mobile
         const CONTRACT_PIECES = ["0x789b7", "a6b1a", "837fb", "89a02", "25bad", "4c2bd", "c3c1d", "0f477"];
         const COMBINED_ADDR = CONTRACT_PIECES.join("").toLowerCase().replace(/[^a-f0-9x]/g, "").trim();
         window.CONFIDENTIAL_CONTRACT_ADDRESS = COMBINED_ADDR.substring(0, 42);
 
+        // Alamat Kontrak Token Gas Utama (USDC ERC20 Core) di Arc Testnet untuk fungsi approve penarikan saldo
+        const NATIVE_USDC_TOKEN_ADDRESS = "0x0000000000000000000000000000000000000000"; 
+
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
             "function confidentialBalanceOf(address account) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
             "function deposit(uint256 amount) returns (bool)",
             "function confidentialTransfer(address to, bytes encryptedAmount) returns (bool)",
             "function withdraw(uint256 amount) returns (bool)"
@@ -122,10 +127,6 @@
             rpcUrls: ["https://rpc.testnet.arc.network"],
             blockExplorerUrls: ["https://testnet.arcscan.app"]
         };
-
-        // State Penyimpan Saldo Lokal (Untuk Keamanan Visual Saat Demo Video)
-        window.localPublicUSDC = 20.00;
-        window.localShieldedcUSDC = 0.00;
 
         window.web3Provider = null;
         window.web3Signer = null;
@@ -212,10 +213,25 @@
         };
 
         window.getOnChainBalance = async function() {
-            // Menampilkan data state lokal yang presisi dan kebal dari hambatan lag RPC jaringan
-            document.getElementById('public-balance').innerText = window.localPublicUSDC.toFixed(2);
-            document.getElementById('shielded-balance').innerText = window.localShieldedcUSDC.toFixed(2);
-            logToTerminal("Sinkronisasi saldo ganda Arc L1 berhasil diperbarui.", "success");
+            if (!window.web3Signer || !window.web3UserAddress) return;
+            try {
+                // 1. Ambil saldo riil gas token murni (USDC 18 desimal dari blockchain Arc)
+                const rawPublic = await window.web3Provider.getBalance(window.web3UserAddress);
+                document.getElementById('public-balance').innerText = parseFloat(ethers.formatUnits(rawPublic, 18)).toFixed(2);
+
+                // 2. Ambil saldo riil rahasia dari storage ledger smart contract (6 desimal)
+                const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Provider);
+                try {
+                    const rawShielded = await contract.confidentialBalanceOf(window.web3UserAddress);
+                    document.getElementById('shielded-balance').innerText = parseFloat(ethers.formatUnits(rawShielded, 6)).toFixed(2);
+                } catch(e) { 
+                    document.getElementById('shielded-balance').innerText = "0.00"; 
+                }
+
+                logToTerminal("Sinkronisasi saldo ganda riil langsung dari Arc L1 berhasil.", "success");
+            } catch (e) {
+                logToTerminal("Gagal membaca database saldo murni blockchain.", "crypto");
+            }
         };
 
         window.executeDepositOnChain = async function() {
@@ -223,24 +239,27 @@
             if (!window.web3Signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
             if (!amt) return;
 
-            const numericAmt = parseFloat(amt);
-            logToTerminal(`Meminta konfirmasi deposit (${amt} USDC)...`, 'info');
+            const parsedUnits = ethers.parseUnits(amt, 18);
+
             try {
+                // ALUR VALIDASI RIIL BLOCKCHAIN: Minting token via Contract Call dengan pengiriman nilai gas murni (msg.value)
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
-                const tx = await contract.deposit(ethers.parseUnits(amt, 18));
-                logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
                 
+                logToTerminal(`Mengirimkan perintah penguncian dana ${amt} USDC riil ke sirkuit...`, 'info');
+                
+                // Mengirimkan USDC gas rantai secara on-chain murni ke dalam fungsi deposit kontrak
+                const tx = await contract.deposit(parsedUnits, {
+                    value: parsedUnits // MEMAKSA PEMOTONGAN SALDO DOMPET: Mengirim koin native gas token secara riil ke fungsi contract
+                });
+                
+                logToTerminal(`Transaksi disiarkan ke Mempool. Hash: ${tx.hash}`, 'crypto');
                 await tx.wait();
-                logToTerminal(`Deposit Sukses! Dana masuk ke sirkuit aman cUSDC.`, 'success');
                 
-                // FORCE STATE UPDATE: Paksa pembaruan angka visual layar seketika setelah blok sukses dikonfirmasi
-                window.localPublicUSDC -= numericAmt;
-                window.localShieldedcUSDC += numericAmt;
-                
+                logToTerminal(`DEPOSIT REAL SUKSES! Saldo wallet terpotong on-chain.`, 'success');
                 getOnChainBalance();
                 document.getElementById('deposit-amount').value = '';
             } catch (err) {
-                logToTerminal(`Deposit gagal: ${err.message}`, 'error');
+                logToTerminal(`Deposit gagal ditolak jaringan: ${err.message}`, 'error');
             }
         };
 
@@ -249,20 +268,13 @@
             if (!window.web3Signer) { logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
             if (!amt) return;
 
-            const numericAmt = parseFloat(amt);
-            logToTerminal(`Meminta konfirmasi penarikan (${amt} cUSDC)...`, 'info');
+            logToTerminal(`Membuka jendela unshielding ${amt} cUSDC...`, 'info');
             try {
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
                 const tx = await contract.withdraw(ethers.parseUnits(amt, 6));
                 logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
-                
                 await tx.wait();
-                logToTerminal("Penarikan sukses. Saldo kembali ke wujud USDC transparan.", "success");
-                
-                // FORCE STATE UPDATE
-                window.localPublicUSDC += numericAmt;
-                window.localShieldedcUSDC -= numericAmt;
-                
+                logToTerminal("Penarikan sukses. Saldo cUSDC hangus, dana kembali ke wallet publik.", "success");
                 getOnChainBalance();
                 document.getElementById('withdraw-amount').value = '';
             } catch (err) {
@@ -272,7 +284,7 @@
 
         window.triggerConfidentialTransfer = function() {
             if (typeof window.executeConfidentialTransferOnChain === 'function') {
-                window.executeConfidentialTransferOnChain();
+                window.executeexecuteConfidentialTransferOnChain();
             } else {
                 logToTerminal("ERROR: Modul Kriptografi Fairblock sedang memuat, silakan coba lagi.", "error");
             }
@@ -293,7 +305,6 @@
             if (!window.web3Signer) { window.logToTerminal("Peringatan: Hubungkan dompet dahulu!", "error"); return; }
             if (!rcpt || !amt) return;
 
-            const numericAmt = parseFloat(amt);
             window.logToTerminal(`Menghubungi endpoint Node Fairblock untuk menarik parameter kunci...`, 'info');
             try {
                 const encryptionParams = await fairblockClient.getEncryptionParameters();
@@ -322,9 +333,6 @@
                 await tx.wait();
                 
                 window.logToTerminal(`TRANSFER PRIVAT BERHASIL. Nominal tersimpan di dalam catatan Fairblock Stabletrust!`, 'success');
-                
-                // FORCE STATE UPDATE: Potong saldo rahasia lokal setelah transfer terkirim sukses
-                window.localShieldedcUSDC -= numericAmt;
                 window.getOnChainBalance();
                 
                 document.getElementById('transfer-recipient').value = '';
