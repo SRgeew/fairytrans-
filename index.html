@@ -103,10 +103,13 @@
     <footer class="p-4 text-center text-[11px] text-gray-400 font-medium">FairyTrans Application Framework • 2026</footer>
 
     <script>
-        // PERBAIKAN TOTAL & MUTLAK: Memaksa string alamat contract dikonversi menjadi huruf kecil murni (lowercase)
-        // Cara ini secara standar bypass validasi checksum internal pada library Ethers.js
-        const BASE_ADDR = "0x789b7a6b1a837fb89a0225bad4c2bdc3c1d0f477"; 
-        window.CONFIDENTIAL_CONTRACT_ADDRESS = BASE_ADDR.toLowerCase().trim();
+        // PERBAIKAN SIBERMUTLAK: Kita tidak menggunakan tanda kutip manual lagi untuk mengunci string alamat kontrak.
+        // Alamat dipecah menjadi array karakter murni dan disaring ketat hanya karakter hex alfanumerik yang lolos.
+        const CONTRACT_PIECES = ["0x789b7", "a6b1a", "837fb", "89a02", "25bad", "4c2bd", "c3c1d", "0f477"];
+        const COMBINED_ADDR = CONTRACT_PIECES.join("").toLowerCase().replace(/[^a-f0-9x]/g, "").trim();
+        
+        // Ambil 42 karakter terdepan secara absolut
+        window.CONFIDENTIAL_CONTRACT_ADDRESS = COMBINED_ADDR.substring(0, 42);
 
         window.FAIRYTRANS_ABI = [
             "function balanceOf(address account) view returns (uint256)",
@@ -247,7 +250,7 @@
 
             logToTerminal(`Meminta konfirmasi deposit (${amt} USDC)...`, 'info');
             try {
-                // Instansiasi aman tanpa pengecekan casing huruf besar-kecil
+                // Instansiasi kontrak menggunakan alamat kebal spasi/koma gaib
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
                 const tx = await contract.deposit(ethers.parseUnits(amt, 18));
                 logToTerminal(`Disiarkan ke jaringan Arc L1. Hash: ${tx.hash}`, 'crypto');
@@ -321,8 +324,8 @@
                 const hexBytes = encryptedPayload.toHexBytes();
                 window.logToTerminal(`Ciphertext biner IBE sukses disusun. Membuka konfirmasi dompet...`, 'info');
 
-                // Paksa input alamat penerima menjadi lowercase murni sepanjang 42 karakter
-                const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9xX]/g, "").trim().substring(0, 42).toLowerCase();
+                // Pembersihan ketat alamat input penerima dari spasi/koma liar
+                const cleanRecipientStr = rcpt.replace(/[^a-fA-F0-9]/g, "").trim().substring(0, 42).toLowerCase();
                 
                 const contract = new ethers.Contract(window.CONFIDENTIAL_CONTRACT_ADDRESS, window.FAIRYTRANS_ABI, window.web3Signer);
                 const tx = await contract.confidentialTransfer(cleanRecipientStr, hexBytes);
